@@ -1,0 +1,34 @@
+.env
+.env.*
+!.env.example
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.cache
+vendor/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+# La configuración local del editor permanece privada.
+Thumbs.db
+desktop.ini
+# Capturas generadas de pruebas con datos ficticios (no versionar).
+tests/artifacts/
+# Sesiones, respaldos y credenciales locales; conservar los SQL de migraciones/seed.
+sess_*
+sessions/
+backups/
+database/backups/
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.sql.zip
+.pgpass
+.pg_service.conf
+*.pem
+*.key
+*.pfx
+*.p12

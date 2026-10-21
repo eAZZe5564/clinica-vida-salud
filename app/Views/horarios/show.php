@@ -1,0 +1,6 @@
+<section class="page-heading"><p class="eyebrow">Horario #<?= (int)$horario['id'] ?> · CU11</p><h1><?= e(\App\Models\HorarioAtencion::DIAS[(int)$horario['dia_semana']]) ?> <?= e(substr($horario['hora_inicio'],0,5) . '–' . substr($horario['hora_fin'],0,5)) ?></h1></section>
+<section class="panel patient-detail"><dl class="detail-grid">
+    <div><dt>Médico</dt><dd><?= e($horario['nombres'] . ' ' . $horario['apellidos']) ?><?= $horario['medico_activo']?'':' (inactivo)' ?></dd></div>
+    <div><dt>Especialidades</dt><dd><?= e($horario['especialidades']) ?></dd></div><div><dt>Duración de citas</dt><dd>30 minutos</dd></div><div><dt>Zona horaria</dt><dd><?= e(\App\Models\HorarioAtencion::zona()->getName()) ?></dd></div><div><dt>Estado del horario</dt><dd><?= $horario['activo']?'Activo':'Inactivo' ?></dd></div>
+    </dl><div class="form-actions"><?php if ($esAdmin): ?><a class="button" href="/horarios/<?= (int)$horario['id'] ?>/editar">Editar horario</a><a class="button button-quiet" href="/horarios/<?= (int)$horario['id'] ?>/estado"><?= $horario['activo']?'Desactivar':'Reactivar' ?></a><?php endif; ?><a class="text-link" href="/horarios?medico=<?= (int)$horario['medico_id'] ?>">Horarios de este médico</a></div>
+</section>
