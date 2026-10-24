@@ -11,7 +11,7 @@ $campos=static function(string $html):array{
 };
 try{
     $http=new HttpCatalogo();$sesiones=[];
-    foreach(['administrador','recepcionista','medico','paciente'] as $rol){$id=$f->usuario($rol);$q=$pdo->prepare('SELECT correo FROM usuarios WHERE id=:id');$q->execute(['id'=>$id]);$correo=$q->fetchColumn();$login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91' . $f->sufijo]);$panel=$http->pedir('/dashboard','GET',$r['cookie']);$sesiones[$rol]=['id'=>$id,'cookie'=>$r['cookie'],'csrf'=>HttpCatalogo::csrf($panel['body'])];}
+    foreach(['administrador','recepcionista','medico','paciente'] as $rol){$id=$f->usuario($rol);$q=$pdo->prepare('SELECT correo FROM usuarios WHERE id=:id');$q->execute(['id'=>$id]);$correo=$q->fetchColumn();$login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91!' . $f->sufijo]);$panel=$http->pedir('/dashboard','GET',$r['cookie']);$sesiones[$rol]=['id'=>$id,'cookie'=>$r['cookie'],'csrf'=>HttpCatalogo::csrf($panel['body'])];}
     $m=$f->medico();$otro=$f->medico();$p=$f->paciente();$inactivo=$f->paciente();$e=$f->especialidades[0];$otra=$f->especialidades[1];$t->horario($m);
     $pdo->prepare('UPDATE pacientes SET activo=false WHERE id=:id')->execute(['id'=>$inactivo]);
     $pdo->prepare('UPDATE medicos SET nombres=:n WHERE id=:id')->execute(['n'=>'AJENO_FORMULARIO','id'=>$otro]);

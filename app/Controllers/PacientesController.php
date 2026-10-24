@@ -9,6 +9,7 @@ use App\Repositories\UsuarioRepository;
 use App\Services\AuthService;
 use App\Services\PacienteService;
 use App\Services\PacienteValidacionException;
+use App\Models\BusquedaPaciente;
 
 /** Solicitudes HTTP del módulo; autorización común en todas sus rutas. */
 final class PacientesController
@@ -48,7 +49,7 @@ final class PacientesController
 
     public function listar(): void
     {
-        $busqueda = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 100) : '';
+        $busqueda = BusquedaPaciente::normalizar($_GET['q'] ?? '');
         $pagina = $this->numeroPagina('pagina');
         $resultado = $this->repositorio->listar($busqueda, $pagina);
         $this->pagina('index', 'Pacientes', compact('busqueda', 'resultado'));

@@ -10,7 +10,7 @@ try{
     if(!is_resource($servidor)){throw new RuntimeException('No se pudo iniciar PHP');}fclose($pipes[0]);
     $navegador=proc_open(['node',__DIR__ . '/citas_browser.mjs'],[0=>['pipe','r'],1=>['pipe','w'],2=>['file','NUL','a']],$pipesNode,dirname(__DIR__));
     if(!is_resource($navegador)){throw new RuntimeException('No se pudo iniciar Node');}
-    fwrite($pipesNode[0],json_encode(['base'=>$base,'correo'=>$correo,'password'=>'Ficticia91' . $f->sufijo,'paciente'=>$p,'medico'=>$m,'especialidad'=>$e,'fecha'=>$t->lunes->format('Y-m-d'),'sufijo'=>$f->sufijo]));fclose($pipesNode[0]);
+    fwrite($pipesNode[0],json_encode(['base'=>$base,'correo'=>$correo,'password'=>'Ficticia91!' . $f->sufijo,'paciente'=>$p,'medico'=>$m,'especialidad'=>$e,'fecha'=>$t->lunes->format('Y-m-d'),'sufijo'=>$f->sufijo]));fclose($pipesNode[0]);
     $resultado=json_decode(stream_get_contents($pipesNode[1]),true);fclose($pipesNode[1]);$codigo=proc_close($navegador);$navegador=null;
     if($codigo!==0||isset($resultado['error'])){fwrite(STDERR,'Prueba de navegador: ' . ($resultado['error']??'interrumpida') . PHP_EOL);throw new RuntimeException('No se completó la prueba de navegador');}
     $q=$pdo->prepare('SELECT count(*) FROM citas WHERE medico_id=:m');$q->execute(['m'=>$m]);if((int)$q->fetchColumn()!==1){throw new RuntimeException('El flujo de navegador duplicó la reserva');}

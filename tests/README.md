@@ -25,6 +25,10 @@ php tests\consulta_citas_integration.php
 php tests\http_consulta_citas.php
 php tests\consulta_citas_browser.php
 php tests\auditoria_ciclo1_http.php
+php tests\mejoras_6a_validation.php
+php tests\mejoras_6a_integration.php
+php tests\http_mejoras_6a.php
+php tests\mejoras_6a_browser.php
 ```
 
 Validaciones: sin conexión a PostgreSQL. Integración de pacientes: transacción revertida. Suites HTTP: servidor local y registros ficticios eliminados en finally. Requieren configuración local y migración 002 para pacientes. Las secuencias pueden avanzar aunque se revierta una transacción.
@@ -32,6 +36,8 @@ Validaciones: sin conexión a PostgreSQL. Integración de pacientes: transacció
 La suite histórica `auth_users_integration.php` presupone usuarios vacíos para comprobar la primera cuenta y el último administrador. No vaciar tablas ni ejecutarla con cuentas reales existentes. La regresión actual usa `http_auth_integration.php`.
 
 Resultados: `docs/ciclo1/pruebas/README.md`.
+
+Mejoras 6A: las cuatro suites `mejoras_6a_validation.php`, `mejoras_6a_integration.php`, `http_mejoras_6a.php` y `mejoras_6a_browser.php` aprobaron 43, 46, 62 y 14 comprobaciones respectivamente (165 nuevas; 1003 con la regresión de 838). La primera no conecta a PostgreSQL; la segunda revierte su transacción; HTTP/CLI y Edge retiran solo sus fixtures. El navegador requiere Edge y Node con WebSocket nativo, usa perfil temporal y credenciales ficticias por stdin, y deja cuatro capturas ignoradas en `tests/artifacts/mejoras-6a/`. Se probaron el rechazo de contraseña por el CLI inicial y su guarda de base con usuarios; no se vaciaron tablas para probar la inicialización completa. Las contraseñas ficticias de suites previas se adaptaron a la política nueva sin eliminar aserciones. Detalle: [MEJORAS_6A.md](../docs/ciclo1/implementacion/MEJORAS_6A.md).
 
 Auditoría 5A: `auditoria_ciclo1_http.php` agrega 46 comprobaciones al total previo de 792 (838 distintas). Verifica por HTTP un único recorrido desde login hasta creación de paciente/especialidad/médico, asignación, horario, disponibilidad, revisión/reserva/recibo y consulta CU14, seguido de logout y bloqueo de rutas privadas. También comprueba raíz pública, cookies/cabeceras, renovación de sesión, mensajes malformados e identidad de navegación de CU03. Simula APP_ENV=production en otro proceso de pruebas para comprobar Secure, sin modificar .env, conectarse a bases externas o desplegar. Usa fixtures ficticios propios y limpieza en finally. HttpCatalogo devuelve cabeceras y acepta un entorno opcional del proceso; su uso previo sin argumentos sigue igual. El informe consolidado es `docs/ciclo1/REVISION_FINAL_CICLO1.md`.
 

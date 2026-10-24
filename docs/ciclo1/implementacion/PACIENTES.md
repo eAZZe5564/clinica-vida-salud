@@ -1,5 +1,7 @@
 # Gestión de pacientes — CU04–CU06
 
+Actualización 6A, 23/10/2026: búsqueda flexible por varios términos, en cualquier orden y entre campos de la misma fila. La implementación y pruebas nuevas se describen en [MEJORAS_6A.md](MEJORAS_6A.md). Las menciones de alcance original más abajo corresponden a la entrega inicial; CU01–CU14 ya están implementados.
+
 Implementado el 20/10/2026 con MVC, PDO, sesiones, CSRF y layout existentes. No se desarrollaron CU07–CU14 ni Ciclo 2. Solo se consultan citas en el detalle del paciente.
 
 ## Rutas y módulos
@@ -22,7 +24,7 @@ Las clases están bajo sus carpetas habituales de `app/`; las vistas en `app/Vie
 - Teléfono opcional (30), correo opcional válido (254), dirección opcional (250). Vacíos opcionales se guardan como NULL; rechaza tipos inesperados, caracteres de control y longitudes excesivas.
 - Alta activa por defecto. Desactivación y reactivación requieren confirmación en pantalla y POST con CSRF. Conservan id, usuario_id y citas, sin modificar sus estados. El trigger existente impide nuevas citas para inactivos.
 - No crea cuentas de acceso ni modifica vínculos usuario_id. Los identificadores proceden de la ruta y no de campos editables.
-- Búsqueda por CI, nombres y apellidos, con comodines escapados y páginas de 20. Citas también limitadas a 20 por página; fechas con hora de La Paz.
+- Búsqueda por CI, nombres y apellidos: cada término coincide en cualquiera de los tres campos y todos se combinan con AND en la misma fila. `BusquedaPaciente` normaliza espacios, limita a 100 caracteres y pliega mayúsculas/tildes de vocales españolas; ñ se conserva distinta de n. `PacienteRepository::listar` usa parámetros únicos por término/campo y ESCAPE explícito para %, _ y !. Conteo y listado comparten filtros, sin N+1; páginas de 20 y búsqueda conservada en enlaces. El filtro soloActivos se conserva y el repositorio compartido mejora los selectores existentes sin cambiar reservas. Citas también limitadas a 20 por página; fechas con hora de La Paz.
 - Salidas escapadas mediante e(); HTML5 y JavaScript complementan la validación PHP, sin decidir permisos ni unicidad.
 
 ## Permisos comprobados

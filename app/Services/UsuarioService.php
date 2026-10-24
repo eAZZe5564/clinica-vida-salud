@@ -169,17 +169,7 @@ final class UsuarioService
 
     private function validarYHashContrasena(string $contrasena): string
     {
-        if (
-            strlen($contrasena) < 12
-            || strlen($contrasena) > 72
-            || preg_match('/[A-Za-z]/', $contrasena) !== 1
-            || preg_match('/[0-9]/', $contrasena) !== 1
-        ) {
-            throw new DomainException(
-                'La contraseña debe tener entre 12 y 72 bytes e incluir letras y números.'
-            );
-        }
-
+        PoliticaContrasena::validar($contrasena);
         return password_hash($contrasena, PASSWORD_DEFAULT);
     }
 

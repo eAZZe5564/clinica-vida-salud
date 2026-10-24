@@ -1,5 +1,7 @@
 # Mapa del código — Ciclo 1
 
+Mejoras 6A (23/10/2026): `app/Models/BusquedaPaciente.php` normaliza y separa términos para `PacienteRepository::listar`; `app/Services/PoliticaContrasena.php` y `ContrasenaValidacionException.php` centralizan requisitos/errores de altas, cambios y primer administrador. `UsuariosController::formulario` conserva correo/rol al corregir una contraseña, nunca su valor. Detalles: [implementacion/MEJORAS_6A.md](implementacion/MEJORAS_6A.md).
+
 Auditoría final 5A: [REVISION_FINAL_CICLO1.md](REVISION_FINAL_CICLO1.md), con 838 comprobaciones distintas aprobadas y matriz consolidada de rutas, tablas y permisos. Preparación de infraestructura: [PREPARACION_DESPLIEGUE.md](PREPARACION_DESPLIEGUE.md). La prueba integral está en `tests/auditoria_ciclo1_http.php`.
 
 CU01–CU14 están implementados, con migraciones 001–004 aplicadas localmente. La interfaz de CU13 y la consulta CU14 reutilizan el esquema existente. CU14 incluye listado y detalle con alcance por rol; la consulta dentro del detalle de pacientes también sigue siendo de lectura.

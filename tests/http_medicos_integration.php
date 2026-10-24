@@ -18,7 +18,7 @@ try {
     foreach(['/medicos','/especialidades','/medicos/nuevo','/especialidades/nuevo'] as $ruta) { $ok($http->pedir($ruta)['status']===303,"sin sesión $ruta"); }
     $sesiones=[];
     foreach((new RolRepository($pdo))->listar() as $rol) {
-        $correo='catalogo-' . $rol['nombre'] . '-' . $s . '@example.invalid'; $password='Prueba91' . bin2hex(random_bytes(8));
+        $correo='catalogo-' . $rol['nombre'] . '-' . $s . '@example.invalid'; $password='Prueba91!' . bin2hex(random_bytes(8));
         $idsUsuarios[]=$usuarios->crear($correo,$password,(int)$rol['id']);
         $login=$http->pedir('/login'); $sesion=$http->pedir('/login','POST',$login['cookie'],['correo'=>$correo,'contrasena'=>$password,'_csrf'=>HttpCatalogo::csrf($login['body'])]);
         $ok($sesion['status']===303,'login ' . $rol['nombre']);

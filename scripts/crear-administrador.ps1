@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $php = (Get-Command php -ErrorAction Stop).Source
 $script = Join-Path $PSScriptRoot 'crear-administrador.php'
 $correo = Read-Host 'Correo para la cuenta administradora inicial'
-$segura = Read-Host 'Contraseña inicial (12-72 bytes; letras y números)' -AsSecureString
+$segura = Read-Host 'Contraseña inicial (mínimo 8 caracteres; mayúscula, minúscula, número y símbolo; máximo 72 bytes)' -AsSecureString
 $ptr = [IntPtr]::Zero
 $proceso = $null
 

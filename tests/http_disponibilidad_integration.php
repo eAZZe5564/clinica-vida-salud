@@ -9,7 +9,7 @@ try{
     $http=new HttpCatalogo();$sesiones=[];
     foreach(['administrador','recepcionista','medico','paciente'] as $rol){
         $id=$f->usuario($rol);$q=$pdo->prepare('SELECT correo FROM usuarios WHERE id=:id');$q->execute(['id'=>$id]);$correo=$q->fetchColumn();
-        $login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91' . $f->sufijo]);
+        $login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91!' . $f->sufijo]);
         $ok($r['status']===303,'login ' . $rol);$sesiones[$rol]=['cookie'=>$r['cookie'],'id'=>$id];
     }
     $m=$f->medico($sesiones['medico']['id']);$otro=$f->medico();$e=$f->especialidades[0];$otraEspecialidad=$f->especialidades[1];

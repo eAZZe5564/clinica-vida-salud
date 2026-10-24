@@ -1,5 +1,14 @@
 # Pruebas
 
+## Mejoras 6A — 23/10/2026
+
+- **165 comprobaciones nuevas aprobadas**: validaciones 43, integración 46, HTTP/CLI 62 y Edge escritorio/móvil 14. Cubren búsqueda por varios campos y órdenes, tildes, espacios, separación entre pacientes, paginación, entradas hostiles, permisos, cinco condiciones de contraseña, Unicode, límites, backend sin JS, altas/cambios, hashes, login histórico y CSRF.
+- **838 comprobaciones de regresión aprobadas** en las 22 suites de CU01–CU14. Se actualizaron contraseñas ficticias de fixtures para cumplir la nueva política, sin retirar aserciones. Total distinto: **1003**, sin sumar repeticiones.
+- Sintaxis correcta: **123 archivos PHP y cuatro scripts JS/MJS**. Edge real probó búsqueda y mensajes en 1440 × 1000 y 390 × 844; cuatro capturas inspeccionadas en `tests/artifacts/mejoras-6a/`, ignoradas por Git.
+- CLI inicial: claves inválidas rechazadas por la política común; una válida conserva la prohibición de inicializar sobre usuarios existentes. No se ejecutó la suite histórica que requiere usuarios vacíos ni se ensayó una instalación limpia.
+- Solo base local `clinica_vida_salud_dev`; conteos y huellas de las ocho tablas iguales antes/después. Sin fixtures permanentes, cambios de esquema, migraciones, cuentas vinculadas o lógica de citas. Las secuencias pueden avanzar.
+- Implementación, inventario y límites: [MEJORAS_6A.md](../implementacion/MEJORAS_6A.md). Cambios locales pendientes de revisión, sin commit ni push.
+
 ## Auditoría final 5A — 20/10/2026
 
 - La batería completa de CU01–CU14 se ejecutó al inicio y se repitió después de las correcciones: **792 aprobadas** en cada ejecución. Se cuentan una sola vez sus comprobaciones distintas. Incluye concurrencia real y los dos recorridos Edge de escritorio/móvil; no se ejecutó auth_users_integration.php porque requiere usuarios vacíos. Las cuentas existentes se conservaron.

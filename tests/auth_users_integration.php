@@ -40,7 +40,7 @@ $esperarErrorDominio = static function (callable $accion, string $nombre) use ($
 
 $sufijo = bin2hex(random_bytes(6));
 $correoAdmin = 'test-admin-' . $sufijo . '@example.invalid';
-$contrasenaAdmin = 'PruebaSegura91';
+$contrasenaAdmin = 'PruebaSegura91!';
 $pdo->beginTransaction();
 
 try {
@@ -56,21 +56,21 @@ try {
     $comprobar(count($roles) === 4, 'se cargaron los cuatro roles fijos');
 
     $correoOtro = 'test-user-' . $sufijo . '@example.invalid';
-    $otroId = $usuarios->crear($correoOtro, 'CuentaPrueba92', $roles['recepcionista']);
+    $otroId = $usuarios->crear($correoOtro, 'CuentaPrueba92!', $roles['recepcionista']);
     $comprobar(
         count($usuarios->listar('test-user-' . $sufijo)) === 1,
         'búsqueda parametrizada de usuarios'
     );
 
     $correoEditado = 'test-editado-' . $sufijo . '@example.invalid';
-    $usuarios->actualizar($otroId, $correoEditado, $roles['paciente'], 'CuentaNueva93');
+    $usuarios->actualizar($otroId, $correoEditado, $roles['paciente'], 'CuentaNueva93!');
     $actualizado = $usuarios->obtener($otroId);
     $comprobar(
         $actualizado['correo'] === $correoEditado && $actualizado['rol_nombre'] === 'paciente',
         'modificación de correo y rol'
     );
     $comprobar(
-        $auth->autenticar($correoEditado, 'CuentaNueva93')?->id === $otroId,
+        $auth->autenticar($correoEditado, 'CuentaNueva93!')?->id === $otroId,
         'actualización de contraseña con hash'
     );
 
@@ -79,7 +79,7 @@ try {
         'rechaza un rol que no existe'
     );
     $esperarErrorDominio(
-        static fn() => $usuarios->crear('invalid-email', 'CuentaPrueba94', $roles['paciente']),
+        static fn() => $usuarios->crear('invalid-email', 'CuentaPrueba94!', $roles['paciente']),
         'rechaza correo inválido'
     );
     $esperarErrorDominio(
@@ -104,9 +104,9 @@ try {
     );
 
     $inactivoCorreo = 'test-inactivo-' . $sufijo . '@example.invalid';
-    $inactivoId = $usuarios->crear($inactivoCorreo, 'CuentaInactiva95', $roles['medico']);
+    $inactivoId = $usuarios->crear($inactivoCorreo, 'CuentaInactiva95!', $roles['medico']);
     $usuarios->cambiarEstado($inactivoId, $adminId, false);
-    $comprobar($auth->autenticar($inactivoCorreo, 'CuentaInactiva95') === null, 'usuario inactivo no puede iniciar sesión');
+    $comprobar($auth->autenticar($inactivoCorreo, 'CuentaInactiva95!') === null, 'usuario inactivo no puede iniciar sesión');
     $comprobar(!$usuarios->obtener($inactivoId)['activo'], 'desactivación lógica conserva la cuenta');
 
     $esperarErrorDominio(

@@ -10,7 +10,7 @@ try{
     $navegador=proc_open(['node',__DIR__.'/citas_browser.mjs'],[0=>['pipe','r'],1=>['pipe','w'],2=>['file','NUL','a']],$pipesNode,dirname(__DIR__));
     if(!is_resource($navegador)){throw new RuntimeException('No se pudo iniciar Node');}
     fwrite($pipesNode[0],json_encode(['consulta'=>true,'base'=>$base,'correo'=>$f->actores['administrador']['correo'],'medicoCorreo'=>$f->actores['medico']['correo'],
-        'password'=>'Ficticia91'.$f->t->fixture->sufijo,'medico'=>$f->medico,'codigo'=>App\Models\Cita::codigo($f->reserva),'reserva'=>$f->reserva,'ajena'=>$f->ajena]));fclose($pipesNode[0]);
+        'password'=>'Ficticia91!'.$f->t->fixture->sufijo,'medico'=>$f->medico,'codigo'=>App\Models\Cita::codigo($f->reserva),'reserva'=>$f->reserva,'ajena'=>$f->ajena]));fclose($pipesNode[0]);
     $resultado=json_decode(stream_get_contents($pipesNode[1]),true);fclose($pipesNode[1]);$codigo=proc_close($navegador);$navegador=null;
     if($codigo!==0||!isset($resultado['assertions'])||isset($resultado['error'])){fwrite(STDERR,'Navegador CU14: '.($resultado['error']??'interrumpido').PHP_EOL);throw new RuntimeException('Prueba visual incompleta');}
     if((int)$pdo->query('SELECT count(*) FROM citas')->fetchColumn()!==$antes){throw new RuntimeException('CU14 realizó una escritura inesperada');}

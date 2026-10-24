@@ -37,8 +37,8 @@ try {
     $usuarios = new App\Services\UsuarioService($pdo,new App\Repositories\UsuarioRepository($pdo),new App\Repositories\RolRepository($pdo));
     $roles = [];
     foreach ((new App\Repositories\RolRepository($pdo))->listar() as $rol) { $roles[$rol['nombre']] = (int) $rol['id']; }
-    $cuenta = $usuarios->crear('medico-test-' . $s . '@example.invalid','PruebaMedico91',$roles['medico']);
-    $cuentaInvalida = $usuarios->crear('recepcion-test-' . $s . '@example.invalid','PruebaRecepcion91',$roles['recepcionista']);
+    $cuenta = $usuarios->crear('medico-test-' . $s . '@example.invalid','PruebaMedico91!',$roles['medico']);
+    $cuentaInvalida = $usuarios->crear('recepcion-test-' . $s . '@example.invalid','PruebaRecepcion91!',$roles['recepcionista']);
     $rechaza(fn() => $ms->guardar(array_replace($base,['usuario_id'=>$cuentaInvalida]),$id),'usuario_id','rechaza cuenta con rol no médico');
     $ms->guardar(array_replace($base,['usuario_id'=>$cuenta]),$id);
     $ok((int)$ms->obtener($id)['usuario_id']===$cuenta,'asociación opcional con cuenta médica existente');

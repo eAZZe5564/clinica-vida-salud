@@ -9,6 +9,7 @@ use App\Middleware\AuthMiddleware;
 use App\Repositories\RolRepository;
 use App\Repositories\UsuarioRepository;
 use App\Services\UsuarioService;
+use App\Services\ContrasenaValidacionException;
 use DomainException;
 use PDOException;
 
@@ -47,26 +48,27 @@ final class UsuariosController
 
     public function nuevo(): void
     {
-        $usuarioSesion = $this->actor;
-        $usuario = null;
-        $roles = $this->usuarios->roles();
-        $titulo = 'Crear usuario';
-        $contenido = dirname(__DIR__) . '/Views/admin/users/form.php';
-        require dirname(__DIR__) . '/Views/layout.php';
+        $this->formulario();
     }
 
     public function editar(int $id): void
     {
+        $this->formulario($id);
+    }
+
+    /** Nunca conserva el valor del campo contraseña al volver a presentar un error. */
+    private function formulario(?int $id=null,array $erroresContrasena=[],?string $correoEnviado=null,?int $rolEnviado=null): void
+    {
         $usuarioSesion = $this->actor;
         try {
-            $usuario = $this->usuarios->obtener($id);
+            $usuario = $id===null?null:$this->usuarios->obtener($id);
         } catch (DomainException) {
             http_response_code(404);
             require dirname(__DIR__) . '/Views/errors/404.php';
             return;
         }
         $roles = $this->usuarios->roles();
-        $titulo = 'Editar usuario';
+        $titulo = $id===null?'Crear usuario':'Editar usuario';
         $contenido = dirname(__DIR__) . '/Views/admin/users/form.php';
         require dirname(__DIR__) . '/Views/layout.php';
     }
@@ -102,6 +104,10 @@ final class UsuariosController
                 );
                 \redirigir('/admin/users?mensaje=usuario-actualizado');
             }
+        } catch (ContrasenaValidacionException $error) {
+            http_response_code(422);
+            $this->formulario($id,$error->errores,$correo,is_int($rolId)?$rolId:null);
+            return;
         } catch (DomainException $error) {
             $destino = $id === null ? '/admin/users/new' : '/admin/users/' . $id . '/edit';
             \redirigir($destino . '?mensaje=datos-invalidos');

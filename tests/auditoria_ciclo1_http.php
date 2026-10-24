@@ -24,7 +24,7 @@ try{
     foreach(['/.env','/.git/config','/app/Config/Database.php','/database/migrations/001_esquema_ciclo1.sql','/scripts/crear-administrador.php','/tests/HttpCatalogo.php','/../.env'] as $ruta){
         $r=$http->pedir($ruta);$ok($r['status']===404&&!str_contains($r['body'],'DB_PASSWORD'),'raíz pública bloquea '.$ruta);
     }
-    $r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91'.$f->sufijo]);$cookie=$r['cookie'];
+    $r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91!'.$f->sufijo]);$cookie=$r['cookie'];
     $ok($r['status']===303&&$r['location']==='/dashboard','administrador inicia sesión');
     $ok($cookie!==$login['cookie'],'login renueva ID de sesión');
     $r=$http->pedir('/dashboard','GET',$cookie);$csrf=HttpCatalogo::csrf($r['body']);$ok($r['status']===200,'panel autenticado');

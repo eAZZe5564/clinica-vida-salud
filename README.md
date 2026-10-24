@@ -53,7 +53,7 @@ Inicia el servidor integrado desde la raíz del proyecto:
 php -S 127.0.0.1:8000 -t public
 ```
 
-Abre <http://127.0.0.1:8000>. En producción debe usarse HTTPS y un servidor configurado para exponer únicamente `public/`; en `APP_ENV=production`, la cookie de sesión exige `Secure`.
+Abre <http://127.0.0.1:8000>. Si ese puerto está ocupado por otro proyecto, utiliza `php -S 127.0.0.1:8001 -t public` y abre <http://127.0.0.1:8001>. Mantén abierta la terminal mientras uses el servidor local. En producción debe usarse HTTPS y un servidor configurado para exponer únicamente `public/`; en `APP_ENV=production`, la cookie de sesión exige `Secure`.
 
 ## Primera cuenta administradora
 
@@ -65,7 +65,15 @@ El seed no incluye cuentas de demostración ni contraseñas predeterminadas. La 
 
 El asistente pide el correo y recibe la contraseña mediante `Read-Host -AsSecureString`; la contraseña no se muestra ni forma parte de los argumentos del proceso. La cuenta solo se puede inicializar cuando `usuarios` está vacía. El servicio guarda únicamente el hash de la contraseña. No existe un instalador público.
 
-Al entrar por primera vez, abre `/login` e ingresa el mismo correo y contraseña localmente; no los pegues en el chat ni los guardes en Git. Las contraseñas deben tener entre 12 y 72 bytes e incluir letras y números.
+Al entrar por primera vez, abre `/login` e ingresa el mismo correo y contraseña localmente; no los pegues en el chat ni los guardes en Git. Las contraseñas nuevas o cambiadas deben tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo especial. Los espacios no cuentan como símbolos. Se admiten letras/dígitos/símbolos Unicode y se mantiene un máximo de 72 bytes para evitar truncamiento de bcrypt. Las contraseñas existentes siguen permitidas al iniciar sesión; editar dejando la contraseña vacía conserva su hash.
+
+## Mejoras 6A del Ciclo 1
+
+El buscador de pacientes admite varios términos en cualquier orden: por ejemplo, nombre + apellido, apellido + CI o los tres juntos. Todos deben coincidir con el mismo paciente, aunque aparezcan en campos distintos. Admite coincidencias parciales, ignora mayúsculas y tildes de vocales, normaliza espacios y conserva filtros y paginación. Límite: 100 caracteres; ñ y n permanecen distintas.
+
+Las altas y cambios de contraseña se validan en PHP mediante una política central de cinco condiciones, también usada por el administrador inicial. Los mensajes indican qué falta sin reflejar la contraseña. El login de cuentas anteriores y la edición con contraseña vacía conservan su comportamiento.
+
+Verificación del 23/10/2026: **165 comprobaciones nuevas y 838 de regresión aprobadas (1003 distintas)**, sintaxis PHP/JS correcta y pruebas reales de escritorio/móvil en Edge. Detalle, inventario de archivos y comprobación manual: [MEJORAS_6A.md](docs/ciclo1/implementacion/MEJORAS_6A.md). No se modificó el esquema PostgreSQL ni se realizó commit o push de esta entrega.
 
 ## Rutas implementadas
 
@@ -240,6 +248,10 @@ php tests\consulta_citas_integration.php
 php tests\http_consulta_citas.php
 php tests\consulta_citas_browser.php
 php tests\auditoria_ciclo1_http.php
+php tests\mejoras_6a_validation.php
+php tests\mejoras_6a_integration.php
+php tests\http_mejoras_6a.php
+php tests\mejoras_6a_browser.php
 ```
 
 Las validaciones no necesitan conexión. Integración de pacientes usa una transacción revertida; las suites HTTP crean registros ficticios y los eliminan en `finally`. Las secuencias pueden avanzar al probar. Las pruebas de pacientes requieren migración 002. Resultados reales y límites en [`docs/ciclo1/pruebas/README.md`](./docs/ciclo1/pruebas/README.md). La suite histórica `auth_users_integration.php` requiere usuarios vacíos; no vacíes tablas para ejecutarla con la cuenta actual.

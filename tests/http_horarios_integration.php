@@ -8,7 +8,7 @@ try{
     $http=new HttpCatalogo();$sesiones=[];
     foreach(['administrador','recepcionista','medico','paciente'] as $rol){
         $id=$fixture->usuario($rol);$q=$pdo->prepare('SELECT correo FROM usuarios WHERE id=:id');$q->execute(['id'=>$id]);$correo=$q->fetchColumn();
-        $login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91' . $fixture->sufijo]);
+        $login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$correo,'contrasena'=>'Ficticia91!' . $fixture->sufijo]);
         $ok($r['status']===303,'login ' . $rol);$panel=$http->pedir('/dashboard','GET',$r['cookie']);
         $sesiones[$rol]=['id'=>$id,'cookie'=>$r['cookie'],'csrf'=>HttpCatalogo::csrf($panel['body'])];
     }

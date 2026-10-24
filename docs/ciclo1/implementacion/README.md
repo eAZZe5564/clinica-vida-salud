@@ -1,5 +1,7 @@
 # Implementación
 
+Mejoras 6A: [MEJORAS_6A.md](MEJORAS_6A.md), búsqueda flexible de pacientes y política centralizada de contraseñas, sin migración ni cambios de horarios/disponibilidad/reservas o cuentas vinculadas.
+
 Auditoría final 5A: [revisión consolidada](../REVISION_FINAL_CICLO1.md) y [preparación para despliegue](../PREPARACION_DESPLIEGUE.md). El flujo completo HTTP se verifica en `tests/auditoria_ciclo1_http.php`; no se agregaron módulos nuevos.
 
 - CU01–CU03 están descritos en [AUTENTICACION_USUARIOS.md](./AUTENTICACION_USUARIOS.md).

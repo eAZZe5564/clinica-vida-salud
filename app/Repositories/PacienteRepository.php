@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use PDO;
+use App\Models\BusquedaPaciente;
 
 /** Todas las consultas del módulo; nunca elimina pacientes ni modifica sus citas. */
 final class PacienteRepository
@@ -18,17 +19,20 @@ final class PacienteRepository
 
     public function listar(string $busqueda, int $pagina, bool $soloActivos = false): array
     {
-        $where = '';
-        $params = [];
-        if ($busqueda !== '') {
-            $where = " WHERE (nombres ILIKE :nombre OR apellidos ILIKE :apellido
-                OR documento_identidad ILIKE :documento
-                OR upper(regexp_replace(documento_identidad, '[[:space:]]+', '', 'g')) LIKE :normalizado)";
-            $patron = '%' . strtr($busqueda, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']) . '%';
-            $normalizado = mb_strtoupper(preg_replace('/\s+/u', '', $busqueda), 'UTF-8');
-            $params = ['nombre' => $patron, 'apellido' => $patron, 'documento' => $patron,
-                'normalizado' => '%' . strtr($normalizado, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']) . '%'];
+        $condiciones=[];$params=[];
+        foreach(BusquedaPaciente::terminos($busqueda) as $indice=>$termino){
+            $campos=[];
+            // Cada término puede coincidir en un campo distinto, pero todos deben pertenecer a la misma fila.
+            foreach(['nombres','apellidos','documento_identidad'] as $campo){
+                $columna=$campo==='documento_identidad'?"regexp_replace(documento_identidad, '[[:space:]]+', '', 'g')":$campo;
+                $parametro=$campo.'_'.$indice;
+                $campos[]="translate(lower($columna), 'áéíóúü' || chr(769) || chr(776), 'aeiouu') LIKE :$parametro ESCAPE '!'";
+                // ESCAPE explícito: %, _ y ! se buscan como texto, nunca como comodines del usuario.
+                $params[$parametro]='%'.strtr($termino,['!'=>'!!','%'=>'!%','_'=>'!_']).'%';
+            }
+            $condiciones[]='('.implode(' OR ',$campos).')';
         }
+        $where=$condiciones?' WHERE '.implode(' AND ',$condiciones):'';
         if ($soloActivos) { $where .= $where === '' ? ' WHERE activo' : ' AND activo'; }
         $q = $this->pdo->prepare('SELECT count(*) FROM pacientes' . $where);
         $q->execute($params);

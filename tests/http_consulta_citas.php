@@ -9,7 +9,7 @@ $ok=static function(bool $v,string $n)use(&$total,&$r):void{
 try{
     $f=new ConsultaCitasPrueba($pdo);$http=new HttpCatalogo();$sesiones=[];
     foreach($f->actores as $rol=>$actor){
-        $login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$actor['correo'],'contrasena'=>'Ficticia91'.$f->t->fixture->sufijo]);
+        $login=$http->pedir('/login');$r=$http->pedir('/login','POST',$login['cookie'],['_csrf'=>HttpCatalogo::csrf($login['body']),'correo'=>$actor['correo'],'contrasena'=>'Ficticia91!'.$f->t->fixture->sufijo]);
         $ok($r['status']===303,'sesión '.$rol);$panel=$http->pedir('/dashboard','GET',$r['cookie']);$sesiones[$rol]=['cookie'=>$r['cookie'],'csrf'=>HttpCatalogo::csrf($panel['body'])];
     }
     $a=$sesiones['administrador']['cookie'];$d=$sesiones['medico']['cookie'];$codigo=App\Models\Cita::codigo($f->reserva);$ajena=App\Models\Cita::codigo($f->ajena);

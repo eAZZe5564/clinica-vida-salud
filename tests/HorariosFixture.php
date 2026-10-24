@@ -24,7 +24,7 @@ final class HorariosFixture
         $repo=new App\Repositories\RolRepository($this->pdo); $roles=[];
         foreach($repo->listar() as $r){$roles[$r['nombre']]=(int)$r['id'];}
         $servicio=new App\Services\UsuarioService($this->pdo,new App\Repositories\UsuarioRepository($this->pdo),$repo);
-        $id=$servicio->crear('horario-' . $rol . '-' . $this->sufijo . '-' . count($this->usuarios) . '@example.invalid','Ficticia91' . $this->sufijo,$roles[$rol]);
+        $id=$servicio->crear('horario-' . $rol . '-' . $this->sufijo . '-' . count($this->usuarios) . '@example.invalid','Ficticia91!' . $this->sufijo,$roles[$rol]);
         $this->usuarios[]=$id; return $id;
     }
     public function paciente(): int

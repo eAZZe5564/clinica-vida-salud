@@ -24,10 +24,10 @@ $correoRecepcion = 'http-recepcion-' . $sufijo . '@example.invalid';
 $correoNuevo = 'http-nuevo-' . $sufijo . '@example.invalid';
 $correoEditado = 'http-editado-' . $sufijo . '@example.invalid';
 $correoInactivo = 'http-inactivo-' . $sufijo . '@example.invalid';
-$contrasenaAdmin = 'HttpAdmin' . random_int(10000000, 99999999);
-$contrasenaRecepcion = 'HttpRecepcion' . random_int(10000000, 99999999);
-$contrasenaNuevo = 'HttpUsuario' . random_int(10000000, 99999999);
-$contrasenaInactivo = 'HttpInactivo' . random_int(10000000, 99999999);
+$contrasenaAdmin = 'HttpAdmin!' . random_int(10000000, 99999999);
+$contrasenaRecepcion = 'HttpRecepcion!' . random_int(10000000, 99999999);
+$contrasenaNuevo = 'HttpUsuario!' . random_int(10000000, 99999999);
+$contrasenaInactivo = 'HttpInactivo!' . random_int(10000000, 99999999);
 $adminId = null;
 $recepcionId = null;
 $nuevoId = null;
@@ -292,7 +292,7 @@ try {
         '_csrf' => 'token-invalido',
         'correo' => 'escalamiento@example.invalid',
         'rol_id' => $roles['administrador'],
-        'contrasena' => 'Escalamiento123',
+        'contrasena' => 'Escalamiento123!',
     ]);
     $comprobar($escalamiento['status'] === 403, 'rol no administrador no puede escalar privilegios');
 

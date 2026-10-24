@@ -61,7 +61,7 @@ try {
     foreach ($roles as $rol) {
         $nombre = $rol['nombre'];
         $correo = 'pacientes-test-' . $nombre . '-' . $sufijo . '@example.invalid';
-        $password = 'Prueba' . bin2hex(random_bytes(8)) . '91';
+        $password = 'Prueba!' . bin2hex(random_bytes(8)) . '91';
         $idsUsuarios[] = $servicio->crear($correo, $password, (int) $rol['id']);
         $login = $http('/login');
         $sesion = $http('/login', 'POST', $login['cookie'], ['correo' => $correo, 'contrasena' => $password, '_csrf' => $csrf($login['body'])]);
