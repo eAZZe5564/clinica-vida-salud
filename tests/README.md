@@ -1,5 +1,7 @@
 # Pruebas
 
+Preparación Render 7A: `php tests/render_preparacion.php` (24 guardas/CLI sin red), `powershell -NoProfile -File tests/render_preparacion.ps1` (16 de URL, aislamiento de proceso, stdin Unicode y errores sin secretos), `php tests/render_sql_local.php` (3 comprobaciones SQL reales en READ ONLY con rollback; nunca migra). `render_proceso_probe.php` solo apoya el test de subprocesos y usa datos ficticios. Docker no está disponible; no se afirma una construcción o prueba de Apache. Guía: [DESPLIEGUE_RENDER.md](../docs/ciclo1/DESPLIEGUE_RENDER.md).
+
 Desde la raíz del proyecto:
 
 ```powershell

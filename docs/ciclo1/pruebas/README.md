@@ -1,5 +1,14 @@
 # Pruebas
 
+## Preparación Render 7A — 25/10/2026
+
+- Regresión completa ejecutada nuevamente: **838 comprobaciones de CU01–CU14 y 165 de mejoras 6A aprobadas (1003)**. Incluye HTTP, concurrencia real y recorridos Edge de escritorio/móvil. No se ejecutó la suite histórica que requiere usuarios vacíos ni se alteraron cuentas para satisfacerla.
+- **43 comprobaciones nuevas aprobadas**: `render_preparacion.php` 24 (configuración, destino, respuesta PDO simulada y CLI que rechaza entradas antes de conectar), `render_preparacion.ps1` 16 (URL, proceso aislado, envío UTF-8, rechazo sin revelar secretos, entorno padre intacto), `render_sql_local.php` 3 (verificación de esquema real y rechazo de destino local/base no vacía, en READ ONLY con rollback). Ninguna de estas pruebas conecta a Render. Total distinto: **1046**.
+- Se detectó que Windows PowerShell 5.1 no admite `ProcessStartInfo.StandardInputEncoding`; se corrigió con escritura directa UTF-8 sin BOM y se repitió la suite, aprobada. Archivos PS nuevos con BOM UTF-8 para interpretar correctamente los mensajes y literales Unicode.
+- Sintaxis correcta: **128 archivos PHP, cuatro scripts JS/MJS, dos PowerShell y un sh**. Revisión estática de Docker/Apache, rutas y exclusiones. Docker no está instalado ni disponible en su ruta habitual; no se construyó imagen ni se ejecutó Apache/contenedor. Bash de Git comprobó únicamente la sintaxis de inicio.
+- Conteos y huellas de las ocho tablas idénticos antes/después: roles 4, usuarios 3, pacientes 3, médicos 2, especialidades 4, asociaciones 3, horarios 2, citas 1. Regresión con fixtures temporales retirados/revertidos; pueden avanzar secuencias. Sin cambios de esquema, migraciones o seed en desarrollo, ni copia de datos a otro destino.
+- Pendientes reales: primera construcción Docker, HTTPS/proxy en Render, instalación completa y primer administrador en la base nueva, y recorrido funcional en el destino. No se crearon servicios/bases ni se ejecutaron comandos contra PostgreSQL remoto. Procedimiento: [DESPLIEGUE_RENDER.md](../DESPLIEGUE_RENDER.md).
+
 ## Mejoras 6A — 23/10/2026
 
 - **165 comprobaciones nuevas aprobadas**: validaciones 43, integración 46, HTTP/CLI 62 y Edge escritorio/móvil 14. Cubren búsqueda por varios campos y órdenes, tildes, espacios, separación entre pacientes, paginación, entradas hostiles, permisos, cinco condiciones de contraseña, Unicode, límites, backend sin JS, altas/cambios, hashes, login histórico y CSRF.

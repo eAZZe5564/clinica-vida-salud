@@ -1,5 +1,7 @@
 # Preparación para despliegue público — Ciclo 1
 
+Actualización 7A, 25/10/2026: se eligió una cuenta NUEVA de Render para la clínica. Ya están preparados Docker/Apache y los asistentes privados de instalación/administrador. Guía actual: [DESPLIEGUE_RENDER.md](DESPLIEGUE_RENDER.md). No se crearon recursos ni se ejecutaron operaciones remotas. Las referencias siguientes a proveedor no elegido describen la auditoría histórica 5A/5B.
+
 Actualización 5B: requisitos revisados al preparar GitHub. .env.example incluye PGSSLMODE y PGSSLROOTCERT como ejemplos **comentados**, sin secretos ni valores activados para la base local. La guía de [GitHub y equipo](GITHUB_TRABAJO_EN_EQUIPO.md) distingue repositorio, URL de despliegue y QR. No se eligió proveedor ni se configuró producción.
 
 Informe de auditoría 5A, 20/10/2026. No constituye un despliegue realizado. No se seleccionó ni configuró proveedor, no se accedió a bases externas y no se ejecutaron migraciones de producción. El sistema está validado localmente; faltan verificar las condiciones del alojamiento y obtener una URL pública HTTPS y su QR.

@@ -4,6 +4,8 @@ Aplicación académica PHP/PostgreSQL para gestionar Clínica Vida Salud por eta
 
 ## Tecnologías
 
+Preparación 7A para Render (25/10/2026): Docker PHP 8.4/Apache, PostgreSQL 17 nuevo e independiente y asistentes seguros desde Windows. Sigue [DESPLIEGUE_RENDER.md](docs/ciclo1/DESPLIEGUE_RENDER.md) para crear manualmente los recursos, inicializar y configurar HTTPS. Esta preparación no crea recursos ni ejecuta operaciones remotas; `.env` local no se utiliza en la imagen.
+
 - PHP 8.4 con PDO, `pdo_pgsql`, `mbstring` y sesiones habilitadas.
 - PostgreSQL 17 con la extensión `btree_gist` (requerida por la migración 001).
 - HTML5, CSS3 y JavaScript sin frameworks ni dependencias externas.

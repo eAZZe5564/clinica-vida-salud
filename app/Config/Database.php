@@ -18,7 +18,7 @@ final class Database
         $password = Env::get('DB_PASSWORD', '');
 
         if ($host === null || $name === null || $user === null) {
-            throw new RuntimeException('Falta configurar la conexión local a PostgreSQL en .env.');
+            throw new RuntimeException('Falta configurar la conexión a PostgreSQL mediante variables de entorno.');
         }
 
         $dsn = sprintf('pgsql:host=%s;port=%s;dbname=%s', $host, $port, $name);
