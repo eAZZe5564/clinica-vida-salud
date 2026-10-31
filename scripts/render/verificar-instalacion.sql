@@ -1,4 +1,4 @@
--- Esquema 001-004 (8 tablas/10 FK) o 001-005 (9 tablas/12 FK).
+-- Esquema 001-004 (8/10), 001-005 (9/12) o 001-006 (9/12 con cancelaciones).
 -- Solo catalogos y comprobaciones. No instala ni modifica objetos o registros.
 DO $$
 DECLARE
@@ -31,6 +31,9 @@ DECLARE
     referencia record;
     indice jsonb;
     ciclo2 boolean;
+    cancelaciones boolean;
+    tipo_historial text := 'CHECK (((tipo)::text = ''reprogramacion''::text))';
+    evento_historial text := 'CHECK (((inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''programada''::text)))';
 BEGIN
     -- CU15_METADATA_INICIO: unico punto de lectura, sustituido solo por fixtures aislados en tests.
     SELECT jsonb_build_object(
@@ -63,6 +66,7 @@ BEGIN
     END IF;
     ciclo2 := esquema->>'historial_tipo'='r';
     ciclo2 := COALESCE(ciclo2,false);
+    cancelaciones := esquema->'columnas' ? 'citas_historial.motivo_cancelacion';
     IF ciclo2 THEN
         tablas_esperadas := tablas_esperadas || '["citas_historial"]'::jsonb;
         columnas_esperadas := columnas_esperadas || '{
@@ -75,6 +79,21 @@ BEGIN
           "citas_historial.cita_id":["public.citas.id","r"],
           "citas_historial.usuario_id":["public.usuarios.id","r"]
         }'::jsonb;
+    END IF;
+    IF cancelaciones THEN
+        IF NOT ciclo2 THEN RAISE EXCEPTION 'Esquema incompatible: cancelacion sin historial'; END IF;
+        columnas_esperadas := columnas_esperadas || '{"citas_historial.motivo_cancelacion":"character varying(250)"}'::jsonb;
+        columnas_opcionales := columnas_opcionales || '["citas_historial.motivo_cancelacion"]'::jsonb;
+        tipo_historial := 'CHECK (((tipo)::text = ANY ((ARRAY[''reprogramacion''::character varying, ''cancelacion''::character varying])::text[])))';
+        evento_historial := 'CHECK (((((tipo)::text = ''reprogramacion''::text) AND (inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''programada''::text)) OR (((tipo)::text = ''cancelacion''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''cancelada''::text))))';
+        IF esquema->'restricciones'->'citas_historial.citas_historial_motivo_cancelacion_valido'->>'tipo' IS DISTINCT FROM 'c'
+           OR esquema->'restricciones'->'citas_historial.citas_historial_motivo_cancelacion_valido'->>'valida' IS DISTINCT FROM 'true'
+           OR esquema->'restricciones'->'citas_historial.citas_historial_motivo_cancelacion_valido'->>'definicion' IS DISTINCT FROM
+            'CHECK (((motivo_cancelacion IS NULL) OR (((tipo)::text = ''cancelacion''::text) AND (btrim((motivo_cancelacion)::text) <> ''''::text))))' THEN
+            RAISE EXCEPTION 'Esquema incompatible: restriccion de motivo de cancelacion';
+        END IF;
+    ELSIF esquema->'restricciones' ? 'citas_historial.citas_historial_motivo_cancelacion_valido' THEN
+        RAISE EXCEPTION 'Esquema incompatible: migracion 006 parcial';
     END IF;
     IF NOT ((esquema->'tablas') @> tablas_esperadas AND tablas_esperadas @> (esquema->'tablas'))
        OR jsonb_array_length(esquema->'tablas') <> (CASE WHEN ciclo2 THEN 9 ELSE 8 END) THEN
@@ -114,6 +133,13 @@ BEGIN
     IF esquema->>'roles' IS DISTINCT FROM '4' OR esquema->>'especialidades' IS DISTINCT FROM '3' THEN
         RAISE EXCEPTION 'Esquema incompatible: faltan catalogos iniciales';
     END IF;
+    IF esquema->'restricciones'->'citas.citas_estado_valido'->>'valida' IS DISTINCT FROM 'true'
+       OR esquema->'restricciones'->'citas.citas_estado_valido'->>'definicion' IS DISTINCT FROM
+        'CHECK (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''cancelada''::character varying, ''atendida''::character varying])::text[])))'
+       OR esquema->'restricciones'->'citas.citas_duracion_ciclo1'->>'valida' IS DISTINCT FROM 'true'
+       OR esquema->'restricciones'->'citas.citas_duracion_ciclo1'->>'definicion' IS DISTINCT FROM 'CHECK ((duracion_minutos = 30))' THEN
+        RAISE EXCEPTION 'Esquema incompatible: estados o duracion de citas';
+    END IF;
     IF ciclo2 THEN
         IF esquema->'columnas'->'citas_historial.id'->>'identidad' IS DISTINCT FROM 'a'
            OR esquema->'columnas'->'citas_historial.cambiado_en'->>'defecto' IS DISTINCT FROM 'clock_timestamp()'
@@ -121,11 +147,10 @@ BEGIN
            OR esquema->'restricciones'->'citas_historial.citas_historial_pkey'->>'definicion' IS DISTINCT FROM 'PRIMARY KEY (id)'
            OR esquema->'restricciones'->'citas_historial.citas_historial_tipo_valido'->>'tipo' IS DISTINCT FROM 'c'
            OR esquema->'restricciones'->'citas_historial.citas_historial_tipo_valido'->>'valida' IS DISTINCT FROM 'true'
-           OR esquema->'restricciones'->'citas_historial.citas_historial_tipo_valido'->>'definicion' IS DISTINCT FROM 'CHECK (((tipo)::text = ''reprogramacion''::text))'
+           OR esquema->'restricciones'->'citas_historial.citas_historial_tipo_valido'->>'definicion' IS DISTINCT FROM tipo_historial
            OR esquema->'restricciones'->'citas_historial.citas_historial_reprogramacion_valida'->>'tipo' IS DISTINCT FROM 'c'
            OR esquema->'restricciones'->'citas_historial.citas_historial_reprogramacion_valida'->>'valida' IS DISTINCT FROM 'true'
-           OR esquema->'restricciones'->'citas_historial.citas_historial_reprogramacion_valida'->>'definicion' IS DISTINCT FROM
-              'CHECK (((inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''programada''::text)))' THEN
+           OR esquema->'restricciones'->'citas_historial.citas_historial_reprogramacion_valida'->>'definicion' IS DISTINCT FROM evento_historial THEN
             RAISE EXCEPTION 'Esquema incompatible: identidad, PK, fecha o restricciones de historial';
         END IF;
         IF (SELECT count(*) FROM jsonb_object_keys(esquema->'indices_historial')) <> 2 THEN

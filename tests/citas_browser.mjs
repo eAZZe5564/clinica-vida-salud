@@ -51,7 +51,36 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.reprogramar) {
+    if (data.cancelar) {
+        const directory = resolve('tests/artifacts/cu16'); await mkdir(directory, { recursive: true });
+        const captures = [];
+        const screenshot = async (name) => {
+            const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const path = join(directory, name); await writeFile(path, Buffer.from(shot.data, 'base64')); captures.push(path);
+        };
+        for (const [width, height, mobile, cita, label] of [[1440, 1000, false, data.cita, 'escritorio'], [390, 844, true, data.citaMovil, 'movil']]) {
+            await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile });
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${cita}` }));
+            check(await evaluate(`!!document.querySelector('a[href="/citas/${cita}/cancelar"]')`), `Acción CU16 en detalle ${label}`);
+            await navigation(() => evaluate(`document.querySelector('a[href="/citas/${cita}/cancelar"]').click()`));
+            check(await evaluate('!!document.querySelector("[data-cancelar-confirmar]")&&document.body.innerText.includes("Programada")&&document.body.innerText.includes("Todavía no se ha cancelado")'), `Confirmación explícita ${label}`);
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), `Formulario ${label} sin desbordamiento`);
+            check(await evaluate('document.querySelector("[name=motivo_cancelacion]").maxLength===250&&document.body.innerText.includes("información clínica")'), `Motivo breve opcional ${label}`);
+            await navigation(() => evaluate('document.querySelector(".form-actions a").click()'));
+            check(await evaluate(`!!document.querySelector('a[href="/citas/${cita}/cancelar"]')`), `Volver conserva estado programada ${label}`);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${cita}/cancelar` }));
+            await evaluate('document.querySelector("[name=motivo_cancelacion]").value="Cambio administrativo ficticio"');
+            await screenshot(`confirmacion-${label}.png`);
+            await navigation(() => evaluate('document.querySelector("[data-cancelar-confirmar]").requestSubmit(document.querySelector("button[value=confirmar]"))'));
+            check(await evaluate(`location.pathname==='/citas/${cita}'&&document.body.innerText.includes('Cita cancelada correctamente')&&document.body.innerText.includes('Cancelada')`), `Cancelación real con PRG ${label}`);
+            check(await evaluate(`!document.querySelector('a[href="/citas/${cita}/cancelar"]')&&!document.querySelector('a[href="/citas/${cita}/reprogramar"]')`), `Cancelada sin acciones incompatibles ${label}`);
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), `Resultado ${label} sin desbordamiento`);
+            await screenshot(`resultado-${label}.png`);
+            await navigation(() => send('Page.reload'));
+            check(await evaluate('document.body.innerText.includes("Cancelada")&&!document.body.innerText.includes("Cita cancelada correctamente")'), `Refresh GET sin repetir confirmación ${label}`);
+        }
+        result = { assertions, captures };
+    } else if (data.reprogramar) {
         const directory = resolve('tests/artifacts/cu15'); await mkdir(directory, { recursive: true });
         const captures = [];
         const screenshot = async (name) => {

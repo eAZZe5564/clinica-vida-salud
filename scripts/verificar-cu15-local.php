@@ -10,7 +10,8 @@ try {
     $pdo->exec(file_get_contents(__DIR__.'/render/verificar-instalacion.sql'));
     $tablas=(int)$pdo->query("SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")->fetchColumn();
     $referencias=(int)$pdo->query("SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND contype='f'")->fetchColumn();
-    echo json_encode(['base'=>'clinica_vida_salud_dev','esquema'=>$tablas===9?'001-005':'001-004',
+    $cancelaciones=(bool)$pdo->query("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='citas_historial' AND column_name='motivo_cancelacion')")->fetchColumn();
+    echo json_encode(['base'=>'clinica_vida_salud_dev','esquema'=>$cancelaciones?'001-006':($tablas===9?'001-005':'001-004'),
         'tablas'=>$tablas,'claves_foraneas'=>$referencias,'historial'=>$tablas===9,'verificado'=>true,'solo_lectura'=>true],JSON_THROW_ON_ERROR).PHP_EOL;
 } catch (Throwable) {
     fwrite(STDERR,"Esquema local incompatible o comprobacion no disponible. No se realizaron escrituras.\n");

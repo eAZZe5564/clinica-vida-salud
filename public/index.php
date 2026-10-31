@@ -14,6 +14,13 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if (preg_match('#^/citas/([1-9][0-9]*)/cancelar$#',$path,$cancelacion)===1) {
+        $id=filter_var($cancelacion[1],FILTER_VALIDATE_INT);
+        if($id===false){http_response_code(404);require dirname(__DIR__).'/app/Views/errors/404.php';}
+        elseif(!in_array($method,['GET','POST'],true)){http_response_code(405);header('Allow: GET, POST');require dirname(__DIR__).'/app/Views/errors/405.php';}
+        else{$controlador=new \App\Controllers\CancelacionesController();$method==='GET'?$controlador->formulario($id):$controlador->procesar($id);}
+        exit;
+    }
     if (preg_match('#^/citas/([1-9][0-9]*)/reprogramar$#',$path,$reprogramacion)===1) {
         $id=filter_var($reprogramacion[1],FILTER_VALIDATE_INT);
         if($id===false){http_response_code(404);require dirname(__DIR__) . '/app/Views/errors/404.php';}

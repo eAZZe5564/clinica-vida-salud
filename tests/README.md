@@ -1,5 +1,15 @@
 # Pruebas
 
+CU16 (solo `clinica_vida_salud_dev`, requiere 006 autorizada/aplicada):
+`php tests/cancelacion_integration.php`, `php tests/http_cancelacion.php`,
+`php tests/cancelacion_concurrency.php` y `php tests/cancelacion_browser.php`.
+Se reutilizan fixtures CU13/CU15 con rollback o limpieza por IDs propios.
+El navegador usa Edge real y genera cuatro capturas ignoradas en
+`tests/artifacts/cu16/`; no publica contraseñas ni usa el perfil personal.
+`php tests/esquema_cu15_validation.php` comprueba ahora también 006 y compatibilidad
+estricta con 001–004 y 001–005 mediante catálogos aislados, todo en READ ONLY.
+Resultados actuales e inventario: [PRUEBAS_CU16.md](../docs/ciclo2/PRUEBAS_CU16.md).
+
 Cierre CU15 8C: `php tests/esquema_cu15_validation.php` (53) ejecuta el verificador
 SQL compartido en READ ONLY sobre desarrollo local con 005 y catálogos aislados
 8/10 y 9/12. No crea ni elimina objetos o registros. `php scripts/verificar-cu15-local.php`

@@ -15,9 +15,14 @@ try{
     $pdo->exec($sql);$ok(true,'verificador completo sobre esquema local real');
     $real=json_decode($pdo->query($lectura)->fetchColumn(),true,512,JSON_THROW_ON_ERROR);
     $ok(count($real['tablas'])===9&&count($real['referencias'])===12&&$real['historial_tipo']==='r','base local real posterior a 005: nueve tablas y doce FK');
+    $cu15=$real;
+    // Aislar el catálogo de 005 sin cambiar la base que ya puede tener 006.
+    unset($cu15['columnas']['citas_historial.motivo_cancelacion'],$cu15['restricciones']['citas_historial.citas_historial_motivo_cancelacion_valido']);
+    $cu15['restricciones']['citas_historial.citas_historial_tipo_valido']['definicion']="CHECK (((tipo)::text = 'reprogramacion'::text))";
+    $cu15['restricciones']['citas_historial.citas_historial_reprogramacion_valida']['definicion']="CHECK (((inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = 'programada'::text) AND ((estado_nuevo)::text = 'programada'::text)))";
     // Catálogo simulado C1: quitar SOLO los metadatos de 005 de una copia en memoria.
     // No se ejecutan CREATE/ALTER/DROP ni se elimina una sola fila/tabla real.
-    $c1=$real;$c1['tablas']=array_values(array_diff($c1['tablas'],['citas_historial']));
+    $c1=$cu15;$c1['tablas']=array_values(array_diff($c1['tablas'],['citas_historial']));
     $c1['historial_tipo']=null;$c1['indices_historial']=(object)[];
     foreach(array_keys($c1['columnas']) as $key){if(str_starts_with($key,'citas_historial.')){unset($c1['columnas'][$key]);}}
     foreach(array_keys($c1['restricciones']) as $key){if(str_starts_with($key,'citas_historial.')){unset($c1['restricciones'][$key]);}}
@@ -34,7 +39,23 @@ try{
     };
     $verificar($c1,true,'Ciclo 1 aislado: acepta ocho tablas/diez FK sin historial');
     $verificar($real,true,'Ciclo 2 aislado: acepta nueve tablas/doce FK con historial completo');
+    $verificar($cu15,true,'CU15 aislado: acepta 005 sin columna ni restricciones de cancelacion');
     $casos=[];
+    foreach(['citas_estado_valido','citas_duracion_ciclo1'] as $nombre){
+        $x=$real;$x['restricciones']['citas.'.$nombre]['definicion']='CHECK (true)';$casos['rechaza integridad de citas debilitada: '.$nombre]=$x;
+        $x=$c1;$x['restricciones']['citas.'.$nombre]['valida']=false;$casos['Ciclo 1 rechaza CHECK sin validar: '.$nombre]=$x;
+    }
+    if(isset($real['columnas']['citas_historial.motivo_cancelacion'])){
+        $x=$real;unset($x['columnas']['citas_historial.motivo_cancelacion']);$casos['rechaza 006 sin columna de motivo']=$x;
+        $x=$real;unset($x['restricciones']['citas_historial.citas_historial_motivo_cancelacion_valido']);$casos['rechaza 006 sin CHECK de motivo']=$x;
+        $x=$real;$x['columnas']['citas_historial.motivo_cancelacion']['tipo']='text';$casos['rechaza motivo sin limite de 250']=$x;
+        $x=$real;$x['columnas']['citas_historial.motivo_cancelacion']['obligatoria']=true;$casos['rechaza motivo obligatorio']=$x;
+        foreach(['citas_historial_tipo_valido','citas_historial_reprogramacion_valida','citas_historial_motivo_cancelacion_valido'] as $nombre){
+            $x=$real;$x['restricciones']['citas_historial.'.$nombre]['definicion']='CHECK (true)';$casos['rechaza CHECK 006 debilitado: '.$nombre]=$x;
+        }
+        $x=$real;$x['restricciones']['citas_historial.citas_historial_tipo_valido']=$cu15['restricciones']['citas_historial.citas_historial_tipo_valido'];$casos['rechaza columna 006 con CHECK de tipo 005']=$x;
+        $x=$real;$x['restricciones']['citas_historial.citas_historial_reprogramacion_valida']=$cu15['restricciones']['citas_historial.citas_historial_reprogramacion_valida'];$casos['rechaza columna 006 con CHECK de evento 005']=$x;
+    }
     $x=$c1;$x['referencias']=$real['referencias'];$casos['rechaza ocho tablas/doce FK']=$x;
     $x=$real;$x['referencias']=$c1['referencias'];$casos['rechaza nueve tablas/diez FK']=$x;
     $x=$real;$x['tablas'][]='tabla_no_prevista';$casos['rechaza tabla adicional']=$x;

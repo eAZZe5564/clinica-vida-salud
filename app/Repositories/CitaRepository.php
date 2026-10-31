@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 use PDO;
 
-/** Persistencia de reservas y consultas CU14; no realiza transiciones de estado. */
+/** Persistencia de reservas, consultas y transiciones administrativas autorizadas. */
 final class CitaRepository
 {
     public function __construct(private readonly PDO $pdo) {}
@@ -91,6 +91,18 @@ final class CitaRepository
         $q=$this->pdo->prepare("INSERT INTO citas_historial(cita_id,tipo,inicio_anterior,inicio_nuevo,estado_anterior,estado_nuevo,usuario_id)
             VALUES (:id,'reprogramacion',:anterior,:nuevo,'programada','programada',:actor)");
         $q->execute(['id'=>$cita['id'],'anterior'=>$cita['fecha_hora_inicio'],'nuevo'=>$inicio,'actor'=>$actor]);
+    }
+    public function cancelarProgramada(int $id): void
+    {
+        $q=$this->pdo->prepare("UPDATE citas SET estado='cancelada' WHERE id=:id AND estado='programada'");
+        $q->execute(['id'=>$id]);
+        if($q->rowCount()!==1){throw new \App\Services\CitaException(['estado'=>'La cita ya no está programada. Vuelve a consultarla.'],409);}
+    }
+    public function registrarCancelacion(array $cita,int $actor,?string $motivo): void
+    {
+        $q=$this->pdo->prepare("INSERT INTO citas_historial(cita_id,tipo,inicio_anterior,inicio_nuevo,estado_anterior,estado_nuevo,usuario_id,motivo_cancelacion)
+            VALUES (:id,'cancelacion',:anterior,:nuevo,'programada','cancelada',:actor,:motivo)");
+        $q->execute(['id'=>$cita['id'],'anterior'=>$cita['fecha_hora_inicio'],'nuevo'=>$cita['fecha_hora_inicio'],'actor'=>$actor,'motivo'=>$motivo]);
     }
     public function bloquearEspecialidad(int $id): ?array
     {
