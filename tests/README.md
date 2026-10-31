@@ -1,5 +1,15 @@
 # Pruebas
 
+CU17 (solo `clinica_vida_salud_dev`, requiere 007 autorizada y aplicada):
+`php tests/confirmacion_integration.php`, `php tests/http_confirmacion.php`,
+`php tests/confirmacion_concurrency.php`, `php tests/confirmacion_browser.php`.
+Comprueban confirmación, historial atómico, GiST, ocupación CU12/CU13 y política
+sin cambios de CU15/CU16. Usan datos ficticios con rollback/limpieza de IDs propios.
+Edge genera cuatro capturas ignoradas en `tests/artifacts/cu17/`. El verificador
+compartido y `php tests/esquema_cu15_validation.php` admiten estrictamente
+001–004/005/006/007, incluyendo la función del trigger de 007. Resultados actuales
+e inventario: [PRUEBAS_CU17.md](../docs/ciclo2/PRUEBAS_CU17.md).
+
 CU16 (solo `clinica_vida_salud_dev`, requiere 006 autorizada/aplicada):
 `php tests/cancelacion_integration.php`, `php tests/http_cancelacion.php`,
 `php tests/cancelacion_concurrency.php` y `php tests/cancelacion_browser.php`.

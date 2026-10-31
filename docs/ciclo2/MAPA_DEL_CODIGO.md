@@ -16,9 +16,9 @@ Complementa [el mapa del Ciclo 1](../ciclo1/MAPA_DEL_CODIGO.md), que se conserva
 | `database/migrations/005_citas_historial.sql` | Entidad de historial con relación N:1 a cita y usuario responsable |
 | `scripts/aplicar-migracion-005.php` | Aplicación manual local autorizada, transaccional, sin reejecución automática |
 | `scripts/inspeccionar-cu15-local.php`, `tests/Cu15Local.php` | Guarda de host/base/versión y revisión READ ONLY de esquema/huellas |
-| `scripts/render/verificar-instalacion.sql` | Contrato compartido: detección estricta 001–004 (8/10), 001–005 o 001–006 (9/12), columnas, CHECK, referencias e índices; solo lectura |
+| `scripts/render/verificar-instalacion.sql` | Contratos estrictos 001–004 (8/10), 001–005/006/007 (9/12), columnas, CHECK, GiST, función del trigger, referencias e índices; solo lectura |
 | `scripts/verificar-cu15-local.php` | Entrada local protegida al contrato de esquema, REPEATABLE READ READ ONLY, sin migraciones |
-| `tests/esquema_cu15_validation.php` | SQL real y catálogos aislados 001–004/005/006, rechazo de variantes parciales o debilitadas, sin DDL ni modificaciones de registros |
+| `tests/esquema_cu15_validation.php` | SQL real y catálogos aislados 001–004/005/006/007, rechazo de variantes parciales o debilitadas, sin DDL ni modificaciones de registros |
 | `tests/ReprogramacionPrueba.php` | Fixtures locales y limpieza limitada a sus IDs; proxy para fallos de persistencia sin DDL |
 | `tests/reprogramacion_integration.php` | Reglas, identidad, historial, fallos y rollback |
 | `tests/reprogramacion_concurrency.php` | Seis carreras con procesos/sesiones PostgreSQL independientes |
@@ -55,3 +55,33 @@ Secuencia CU16: Actor → Router → CancelacionesController → CancelacionServ
 CitaRepository → PostgreSQL. Médico FOR SHARE → cita FOR UPDATE → actor FOR SHARE;
 estado e historial confirman o revierten juntos. CU12 solo libera la ocupación
 después del commit. No hay rutas de asistencia ni reasignación de médico.
+
+## CU17
+
+| Archivo | Responsabilidad / UML |
+|---|---|
+| `app/Controllers/ConfirmacionesController.php` | Roles, CSRF, pantalla explícita, errores y PRG; distinto del recibo de programación CU13 |
+| `app/Services/ConfirmacionService.php` | Solo programada, referencia vigente, usuario activo, bloqueos y transacción estado/historial |
+| `app/Repositories/CitaRepository.php` | UPDATE condicionado de estado e INSERT de confirmación sin motivo de cancelación |
+| `app/Models/Cita.php` | Catálogo de estados y etiqueta Confirmada para CU14 |
+| `app/Views/citas/confirmar.php`, `confirmar-error.php` | Confirmación y rechazo con escape HTML, sin datos clínicos innecesarios |
+| `app/Views/citas/index.php`, `show.php` | Acción por rol/estado, badge Confirmada, detalle y aviso de éxito |
+| `public/index.php` | GET/POST `/citas/{id}/confirmar`, sin colisión con recibo `/citas/confirmacion/{id}` |
+| `public/assets/css/app.css` | Pantalla adaptable, badge Confirmada y acciones del detalle con ajuste de línea |
+| `app/Repositories/DisponibilidadRepository.php` | CU12: programada y confirmada ocupan; CU13 revalida mediante esta misma consulta |
+| `app/Repositories/HorarioRepository.php`, `app/Services/HorarioService.php`, `app/Views/horarios/status.php` | CU11 protege confirmadas futuras frente a recorte/desactivación y explica el rechazo |
+| `app/Services/ReprogramacionService.php`, `CancelacionService.php` | Política de solo programada conservada; mensajes incluyen confirmadas |
+| `scripts/inspeccionar-horarios.php` | Conteo diagnóstico de reservas futuras en ambos estados |
+| `database/migrations/007_citas_confirmacion.sql` | CHECK de estado, GiST para ambos estados, historial y función del trigger; ninguna tabla nueva |
+| `scripts/aplicar-migracion-007.php` | Solo local y autorización explícita; validación 006 → 007 en una transacción |
+| `tests/ConfirmacionPrueba.php` | Composición de fixtures CU13–CU16 y guarda de esquema 007 |
+| `tests/confirmacion_integration.php` | Identidad, historial, CHECK, trigger, GiST, rollback y CU11–CU16 |
+| `tests/http_confirmacion.php` | Roles, CSRF, XSS, PRG, parámetros manipulados y consultas CU12/CU14 |
+| `tests/confirmacion_concurrency.php` | Diez carreras, bloqueos reales y reserva GiST incompatible |
+| `tests/confirmacion_browser.php`, `tests/citas_browser.mjs` | Edge real en escritorio/móvil; confirmación, filtro CU14 y ocupación CU12 |
+
+UML: añadir ConfirmacionesController y ConfirmacionService; Cita conserva su
+identidad y relaciones. CitasHistorial agrega el tipo confirmacion y la transición
+programada → confirmada con inicios iguales y motivo NULL. No hay nuevas entidades.
+Secuencia: médico FOR SHARE → cita FOR UPDATE → relectura de estado/revisión →
+usuario FOR SHARE → UPDATE estado → INSERT historial → COMMIT → 303 al detalle.

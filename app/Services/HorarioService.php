@@ -62,7 +62,7 @@ final class HorarioService
     private function protegerCitas(int $medico, array $dias): void
     {
         if ($this->repo->citasSinCobertura($medico,$dias,HorarioAtencion::zona()->getName())) {
-            throw new CatalogoValidacionException(['citas'=>'La operación dejaría una cita futura programada fuera de los horarios válidos. Se conservaron el horario y la cita.']);
+            throw new CatalogoValidacionException(['citas'=>'La operación dejaría una cita futura programada o confirmada fuera de los horarios válidos. Se conservaron el horario y la cita.']);
         }
     }
     public function guardar(array $entrada, ?int $id=null): int

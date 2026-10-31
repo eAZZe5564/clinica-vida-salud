@@ -51,7 +51,39 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.cancelar) {
+    if (data.confirmarCita) {
+        const directory = resolve('tests/artifacts/cu17'); await mkdir(directory, { recursive: true });
+        const captures = [];
+        const screenshot = async (name) => {
+            const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const path = join(directory, name); await writeFile(path, Buffer.from(shot.data, 'base64')); captures.push(path);
+        };
+        for (const [width, height, mobile, cita, hora, label] of [[1440, 1000, false, data.cita, '08:00', 'escritorio'], [390, 844, true, data.citaMovil, '09:00', 'movil']]) {
+            await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile });
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${cita}` }));
+            check(await evaluate(`!!document.querySelector('a[href="/citas/${cita}/confirmar"]')`), `Acción CU17 en detalle ${label}`);
+            await navigation(() => evaluate(`document.querySelector('a[href="/citas/${cita}/confirmar"]').click()`));
+            check(await evaluate('!!document.querySelector("[data-confirmar-cita]")&&document.body.innerText.includes("Programada")&&document.body.innerText.includes("Todavía no se ha confirmado")'), `Confirmación explícita ${label}`);
+            check(await evaluate(`document.body.innerText.includes(${JSON.stringify(hora)})&&document.body.innerText.includes('America/La_Paz')`), `Horario original visible ${label}`);
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), `Formulario ${label} sin desbordamiento`);
+            await navigation(() => evaluate('document.querySelector(".form-actions a").click()'));
+            check(await evaluate(`!!document.querySelector('a[href="/citas/${cita}/confirmar"]')`), `Volver conserva programada ${label}`);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${cita}/confirmar` }));
+            await screenshot(`confirmacion-${label}.png`);
+            await navigation(() => evaluate('document.querySelector("[data-confirmar-cita]").requestSubmit(document.querySelector("button[value=confirmar]"))'));
+            check(await evaluate(`location.pathname==='/citas/${cita}'&&document.body.innerText.includes('Cita confirmada correctamente')&&document.body.innerText.includes('El horario continúa reservado')`), `Confirmación real con PRG ${label}`);
+            check(await evaluate(`['confirmar','cancelar','reprogramar'].every(accion=>!document.querySelector('a[href="/citas/${cita}/'+accion+'"]'))`), `Confirmada sin acciones incompatibles ${label}`);
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1&&!!document.querySelector(".appointment-confirmada")'), `Estado confirmado y resultado ${label} legibles`);
+            await screenshot(`resultado-${label}.png`);
+            await navigation(() => send('Page.reload'));
+            check(await evaluate('document.body.innerText.includes("Confirmada")&&!document.body.innerText.includes("Cita confirmada correctamente")'), `Refresh GET sin duplicación ${label}`);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas?estado=confirmada&codigo=${encodeURIComponent(data.codigos[String(cita)])}` }));
+            check(await evaluate('document.querySelectorAll("[data-cita-id]").length===1&&document.querySelector("[name=estado]").value==="confirmada"&&!!document.querySelector(".appointment-confirmada")'), `Filtro CU14 de confirmadas ${label}`);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/disponibilidad?medico_id=${data.medico}&fecha=${data.fecha}` }));
+            check(await evaluate(`!document.querySelector('[data-turno-inicio="${data.fecha}T${hora}:00-04:00"]')`), `CU12 mantiene ocupado el turno confirmado ${label}`);
+        }
+        result = { assertions, captures };
+    } else if (data.cancelar) {
         const directory = resolve('tests/artifacts/cu16'); await mkdir(directory, { recursive: true });
         const captures = [];
         const screenshot = async (name) => {

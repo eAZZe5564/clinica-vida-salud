@@ -277,6 +277,11 @@ button:disabled { cursor: default; opacity: .55; }
 .button-danger { background: #a52d36; color: #fff; }
 .button-danger:hover { background: #86232b; }
 .cancelar-panel { padding: 28px; margin-bottom: 22px; }
+.confirmar-panel { padding: 28px; margin-bottom: 22px; }
+.confirmar-panel .detail-grid dd { overflow-wrap: anywhere; }
+.appointment-confirmada { background: #e4f4ee; color: #185641; }
+.patient-detail .form-actions { flex-wrap: wrap; }
+@media (max-width:760px) { .confirmar-panel { padding: 20px; } }
 .cancelar-panel .field-group { margin-top: 22px; }
 .cancelar-panel input { width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1px solid #cbdad5; border-radius: 8px; font: inherit; }
 .cancelar-panel .detail-grid dd { overflow-wrap: anywhere; }

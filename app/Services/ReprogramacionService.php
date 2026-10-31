@@ -19,7 +19,7 @@ final class ReprogramacionService
         $cita=$this->repo->paraReprogramar($id);
         if($cita===null){throw new CitaException(['cita'=>'La cita no existe.'],404);}
         if($cita['estado']!=='programada'){
-            throw new CitaException(['estado'=>'Solo se pueden reprogramar citas programadas. Las canceladas o atendidas conservan su horario.'],409);
+            throw new CitaException(['estado'=>'Solo se pueden reprogramar citas programadas. Las confirmadas, canceladas o atendidas conservan su horario.'],409);
         }
         if($cita['especialidad_id']===null){throw new CitaException(['especialidad'=>'La cita no tiene especialidad registrada. No se puede inferir ni reasignar en CU15.'],409);}
         $cita['codigo']=Cita::codigo((int)$cita['id']);

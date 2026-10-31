@@ -69,12 +69,12 @@ final class HorarioRepository
     public function citasSinCobertura(int $medico, array $dias, string $zona): bool
     {
         // Se consulta después del cambio, dentro de la misma transacción.
-        // Si una reserva programada queda fuera de un tramo, el servicio revierte.
+        // Una reserva programada o confirmada sin cobertura provoca rollback.
         $params=['medico'=>$medico,'zona'=>$zona]; $marcas=[];
         foreach (array_values(array_unique($dias)) as $i=>$dia) { $params['dia'.$i]=$dia; $marcas[]=':dia'.$i; }
         $q=$this->pdo->prepare("WITH futuras AS (
             SELECT fecha_hora_inicio AT TIME ZONE :zona AS inicio,duracion_minutos FROM citas
-            WHERE medico_id=:medico AND estado='programada' AND fecha_hora_inicio>clock_timestamp()
+            WHERE medico_id=:medico AND estado IN ('programada','confirmada') AND fecha_hora_inicio>clock_timestamp()
         ), locales AS (SELECT inicio,inicio+make_interval(mins=>duracion_minutos) AS fin FROM futuras)
         SELECT 1 FROM locales c WHERE extract(isodow FROM c.inicio) IN (" . implode(',',$marcas) . ") AND NOT EXISTS (
             SELECT 1 FROM horarios_atencion h WHERE h.medico_id=:medico_h AND h.activo

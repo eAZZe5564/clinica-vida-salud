@@ -1,4 +1,4 @@
--- Esquema 001-004 (8/10), 001-005 (9/12) o 001-006 (9/12 con cancelaciones).
+-- Esquema 001-004 (8/10), 001-005/006/007 (9/12, contratos estrictos por versión).
 -- Solo catalogos y comprobaciones. No instala ni modifica objetos o registros.
 DO $$
 DECLARE
@@ -32,6 +32,9 @@ DECLARE
     indice jsonb;
     ciclo2 boolean;
     cancelaciones boolean;
+    confirmaciones boolean;
+    estados_citas text := 'CHECK (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''cancelada''::character varying, ''atendida''::character varying])::text[])))';
+    exclusion_citas text := 'EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE ''UTC''::text), ((fecha_hora_inicio AT TIME ZONE ''UTC''::text) + make_interval(mins => (duracion_minutos)::integer)), ''[)''::text) WITH &&) WHERE (((estado)::text = ''programada''::text))';
     tipo_historial text := 'CHECK (((tipo)::text = ''reprogramacion''::text))';
     evento_historial text := 'CHECK (((inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''programada''::text)))';
 BEGIN
@@ -56,6 +59,8 @@ BEGIN
         FROM pg_constraint f JOIN pg_class c ON c.oid=f.conrelid JOIN pg_namespace n ON n.oid=f.connamespace WHERE n.nspname='public' AND c.relname IN ('citas','citas_historial')),'{}'::jsonb),
       'btree_gist', EXISTS(SELECT 1 FROM pg_extension WHERE extname='btree_gist'),
       'trigger_citas', EXISTS(SELECT 1 FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace pn ON pn.oid=p.pronamespace WHERE n.nspname='public' AND c.relname='citas' AND t.tgname='citas_validar_reserva' AND NOT t.tgisinternal AND t.tgenabled IN ('O','A') AND t.tgtype=23 AND pn.nspname='public' AND p.proname='validar_cita_ciclo1'),
+      'funcion_citas', (SELECT jsonb_build_object('huella',md5(btrim(regexp_replace(p.prosrc,'[[:space:]]+',' ','g'))),'lenguaje',l.lanname,'tipo',p.prorettype::regtype::text,'definidor',p.prosecdef)
+        FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang WHERE n.nspname='public' AND p.proname='validar_cita_ciclo1' AND p.pronargs=0),
       'roles', (SELECT count(*) FROM public.roles WHERE nombre IN ('administrador','recepcionista','medico','paciente')),
       'especialidades', (SELECT count(*) FROM public.especialidades WHERE nombre IN ('Medicina general','Pediatría','Cardiología'))
     ) INTO esquema;
@@ -67,6 +72,7 @@ BEGIN
     ciclo2 := esquema->>'historial_tipo'='r';
     ciclo2 := COALESCE(ciclo2,false);
     cancelaciones := esquema->'columnas' ? 'citas_historial.motivo_cancelacion';
+    confirmaciones := position('confirmada' IN COALESCE(esquema->'restricciones'->'citas.citas_estado_valido'->>'definicion',''))>0;
     IF ciclo2 THEN
         tablas_esperadas := tablas_esperadas || '["citas_historial"]'::jsonb;
         columnas_esperadas := columnas_esperadas || '{
@@ -94,6 +100,19 @@ BEGIN
         END IF;
     ELSIF esquema->'restricciones' ? 'citas_historial.citas_historial_motivo_cancelacion_valido' THEN
         RAISE EXCEPTION 'Esquema incompatible: migracion 006 parcial';
+    END IF;
+    IF confirmaciones THEN
+        IF NOT cancelaciones THEN RAISE EXCEPTION 'Esquema incompatible: 007 requiere 006 completa'; END IF;
+        estados_citas := 'CHECK (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''cancelada''::character varying, ''atendida''::character varying, ''confirmada''::character varying])::text[])))';
+        exclusion_citas := 'EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE ''UTC''::text), ((fecha_hora_inicio AT TIME ZONE ''UTC''::text) + make_interval(mins => (duracion_minutos)::integer)), ''[)''::text) WITH &&) WHERE (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''confirmada''::character varying])::text[])))';
+        tipo_historial := 'CHECK (((tipo)::text = ANY ((ARRAY[''reprogramacion''::character varying, ''cancelacion''::character varying, ''confirmacion''::character varying])::text[])))';
+        evento_historial := 'CHECK (((((tipo)::text = ''reprogramacion''::text) AND (inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''programada''::text)) OR (((tipo)::text = ''cancelacion''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''cancelada''::text)) OR (((tipo)::text = ''confirmacion''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''confirmada''::text))))';
+        IF esquema->'funcion_citas'->>'huella' IS DISTINCT FROM 'b35f6332097bc2f3ae6a0c8f07af19d6'
+           OR esquema->'funcion_citas'->>'lenguaje' IS DISTINCT FROM 'plpgsql'
+           OR esquema->'funcion_citas'->>'tipo' IS DISTINCT FROM 'trigger'
+           OR esquema->'funcion_citas'->>'definidor' IS DISTINCT FROM 'false' THEN
+            RAISE EXCEPTION 'Esquema incompatible: funcion del trigger no corresponde a 007';
+        END IF;
     END IF;
     IF NOT ((esquema->'tablas') @> tablas_esperadas AND tablas_esperadas @> (esquema->'tablas'))
        OR jsonb_array_length(esquema->'tablas') <> (CASE WHEN ciclo2 THEN 9 ELSE 8 END) THEN
@@ -126,16 +145,14 @@ BEGIN
        OR NOT COALESCE((esquema->>'trigger_citas')::boolean,false)
        OR esquema->'restricciones'->'citas.citas_medico_sin_superposicion'->>'tipo' IS DISTINCT FROM 'x'
        OR esquema->'restricciones'->'citas.citas_medico_sin_superposicion'->>'valida' IS DISTINCT FROM 'true'
-       OR esquema->'restricciones'->'citas.citas_medico_sin_superposicion'->>'definicion' IS DISTINCT FROM
-          'EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE ''UTC''::text), ((fecha_hora_inicio AT TIME ZONE ''UTC''::text) + make_interval(mins => (duracion_minutos)::integer)), ''[)''::text) WITH &&) WHERE (((estado)::text = ''programada''::text))' THEN
+       OR esquema->'restricciones'->'citas.citas_medico_sin_superposicion'->>'definicion' IS DISTINCT FROM exclusion_citas THEN
         RAISE EXCEPTION 'Esquema incompatible: falta integridad GiST, extension o trigger activo de citas';
     END IF;
     IF esquema->>'roles' IS DISTINCT FROM '4' OR esquema->>'especialidades' IS DISTINCT FROM '3' THEN
         RAISE EXCEPTION 'Esquema incompatible: faltan catalogos iniciales';
     END IF;
     IF esquema->'restricciones'->'citas.citas_estado_valido'->>'valida' IS DISTINCT FROM 'true'
-       OR esquema->'restricciones'->'citas.citas_estado_valido'->>'definicion' IS DISTINCT FROM
-        'CHECK (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''cancelada''::character varying, ''atendida''::character varying])::text[])))'
+       OR esquema->'restricciones'->'citas.citas_estado_valido'->>'definicion' IS DISTINCT FROM estados_citas
        OR esquema->'restricciones'->'citas.citas_duracion_ciclo1'->>'valida' IS DISTINCT FROM 'true'
        OR esquema->'restricciones'->'citas.citas_duracion_ciclo1'->>'definicion' IS DISTINCT FROM 'CHECK ((duracion_minutos = 30))' THEN
         RAISE EXCEPTION 'Esquema incompatible: estados o duracion de citas';

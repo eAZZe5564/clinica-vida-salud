@@ -15,7 +15,13 @@ try{
     $pdo->exec($sql);$ok(true,'verificador completo sobre esquema local real');
     $real=json_decode($pdo->query($lectura)->fetchColumn(),true,512,JSON_THROW_ON_ERROR);
     $ok(count($real['tablas'])===9&&count($real['referencias'])===12&&$real['historial_tipo']==='r','base local real posterior a 005: nueve tablas y doce FK');
-    $cu15=$real;
+    $cu16=$real;
+    // Aislar 006 de una base que ya puede tener 007; solo metadatos en memoria.
+    $cu16['restricciones']['citas.citas_estado_valido']['definicion']="CHECK (((estado)::text = ANY ((ARRAY['programada'::character varying, 'cancelada'::character varying, 'atendida'::character varying])::text[])))";
+    $cu16['restricciones']['citas.citas_medico_sin_superposicion']['definicion']="EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE 'UTC'::text), ((fecha_hora_inicio AT TIME ZONE 'UTC'::text) + make_interval(mins => (duracion_minutos)::integer)), '[)'::text) WITH &&) WHERE (((estado)::text = 'programada'::text))";
+    $cu16['restricciones']['citas_historial.citas_historial_tipo_valido']['definicion']="CHECK (((tipo)::text = ANY ((ARRAY['reprogramacion'::character varying, 'cancelacion'::character varying])::text[])))";
+    $cu16['restricciones']['citas_historial.citas_historial_reprogramacion_valida']['definicion']="CHECK (((((tipo)::text = 'reprogramacion'::text) AND (inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = 'programada'::text) AND ((estado_nuevo)::text = 'programada'::text)) OR (((tipo)::text = 'cancelacion'::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = 'programada'::text) AND ((estado_nuevo)::text = 'cancelada'::text))))";
+    $cu15=$cu16;
     // Aislar el catálogo de 005 sin cambiar la base que ya puede tener 006.
     unset($cu15['columnas']['citas_historial.motivo_cancelacion'],$cu15['restricciones']['citas_historial.citas_historial_motivo_cancelacion_valido']);
     $cu15['restricciones']['citas_historial.citas_historial_tipo_valido']['definicion']="CHECK (((tipo)::text = 'reprogramacion'::text))";
@@ -40,7 +46,19 @@ try{
     $verificar($c1,true,'Ciclo 1 aislado: acepta ocho tablas/diez FK sin historial');
     $verificar($real,true,'Ciclo 2 aislado: acepta nueve tablas/doce FK con historial completo');
     $verificar($cu15,true,'CU15 aislado: acepta 005 sin columna ni restricciones de cancelacion');
+    if(isset($real['columnas']['citas_historial.motivo_cancelacion'])){$verificar($cu16,true,'CU16 aislado: acepta 006 sin confirmaciones');}
     $casos=[];
+    if(str_contains($real['restricciones']['citas.citas_estado_valido']['definicion'],'confirmada')){
+        $x=$real;$x['restricciones']['citas.citas_medico_sin_superposicion']=$cu16['restricciones']['citas.citas_medico_sin_superposicion'];$casos['rechaza 007 con GiST que libera confirmadas']=$x;
+        $x=$real;$x['restricciones']['citas.citas_estado_valido']=$cu16['restricciones']['citas.citas_estado_valido'];$casos['rechaza historial 007 con estados anteriores']=$x;
+        foreach(['citas_historial_tipo_valido','citas_historial_reprogramacion_valida'] as $nombre){
+            $x=$real;$x['restricciones']['citas_historial.'.$nombre]=$cu16['restricciones']['citas_historial.'.$nombre];$casos['rechaza 007 con CHECK de 006: '.$nombre]=$x;
+        }
+        foreach(['huella'=>'otra','lenguaje'=>'sql','tipo'=>'text','definidor'=>true] as $key=>$value){
+            $x=$real;$x['funcion_citas'][$key]=$value;$casos['rechaza funcion 007 alterada: '.$key]=$x;
+        }
+        $x=$real;$x['funcion_citas']=null;$casos['rechaza funcion 007 ausente']=$x;
+    }
     foreach(['citas_estado_valido','citas_duracion_ciclo1'] as $nombre){
         $x=$real;$x['restricciones']['citas.'.$nombre]['definicion']='CHECK (true)';$casos['rechaza integridad de citas debilitada: '.$nombre]=$x;
         $x=$c1;$x['restricciones']['citas.'.$nombre]['valida']=false;$casos['Ciclo 1 rechaza CHECK sin validar: '.$nombre]=$x;

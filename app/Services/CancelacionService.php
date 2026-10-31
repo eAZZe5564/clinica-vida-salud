@@ -19,7 +19,7 @@ final class CancelacionService
         $cita=$this->repo->paraReprogramar($id);
         if($cita===null){throw new CitaException(['cita'=>'La cita no existe.'],404);}
         if($cita['estado']!=='programada'){
-            throw new CitaException(['estado'=>'Solo se pueden cancelar citas programadas. Una cita cancelada o atendida no admite esta operación.'],409);
+            throw new CitaException(['estado'=>'Solo se pueden cancelar citas programadas. Una cita confirmada, cancelada o atendida no admite esta operación.'],409);
         }
         $cita['codigo']=Cita::codigo((int)$cita['id']);
         $inicio=(new DateTimeImmutable($cita['fecha_hora_inicio']))->setTimezone(HorarioAtencion::zona());

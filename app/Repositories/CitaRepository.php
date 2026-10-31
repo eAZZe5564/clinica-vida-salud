@@ -98,6 +98,18 @@ final class CitaRepository
         $q->execute(['id'=>$id]);
         if($q->rowCount()!==1){throw new \App\Services\CitaException(['estado'=>'La cita ya no está programada. Vuelve a consultarla.'],409);}
     }
+    public function confirmarProgramada(int $id): void
+    {
+        $q=$this->pdo->prepare("UPDATE citas SET estado='confirmada' WHERE id=:id AND estado='programada'");
+        $q->execute(['id'=>$id]);
+        if($q->rowCount()!==1){throw new \App\Services\CitaException(['estado'=>'La cita ya no está programada. Vuelve a consultarla.'],409);}
+    }
+    public function registrarConfirmacion(array $cita,int $actor): void
+    {
+        $q=$this->pdo->prepare("INSERT INTO citas_historial(cita_id,tipo,inicio_anterior,inicio_nuevo,estado_anterior,estado_nuevo,usuario_id,motivo_cancelacion)
+            VALUES (:id,'confirmacion',:anterior,:nuevo,'programada','confirmada',:actor,NULL)");
+        $q->execute(['id'=>$cita['id'],'anterior'=>$cita['fecha_hora_inicio'],'nuevo'=>$cita['fecha_hora_inicio'],'actor'=>$actor]);
+    }
     public function registrarCancelacion(array $cita,int $actor,?string $motivo): void
     {
         $q=$this->pdo->prepare("INSERT INTO citas_historial(cita_id,tipo,inicio_anterior,inicio_nuevo,estado_anterior,estado_nuevo,usuario_id,motivo_cancelacion)

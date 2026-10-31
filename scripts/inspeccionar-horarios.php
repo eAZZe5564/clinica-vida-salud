@@ -16,7 +16,7 @@ foreach ([
     'horarios'=>'SELECT count(*) FROM horarios_atencion',
     'solapamientos'=> 'SELECT count(*) FROM horarios_atencion a JOIN horarios_atencion b ON a.id<b.id AND a.medico_id=b.medico_id AND a.dia_semana=b.dia_semana WHERE a.activo AND b.activo AND a.hora_inicio<b.hora_fin AND b.hora_inicio<a.hora_fin',
     'fuera_grilla'=>"SELECT count(*) FROM horarios_atencion WHERE mod(extract(epoch FROM hora_inicio)::numeric,1800)<>0 OR mod(extract(epoch FROM hora_fin)::numeric,1800)<>0",
-    'citas_futuras'=>"SELECT count(*) FROM citas WHERE estado='programada' AND fecha_hora_inicio>now()",
+    'citas_futuras'=>"SELECT count(*) FROM citas WHERE estado IN ('programada','confirmada') AND fecha_hora_inicio>now()",
     'usuarios'=>'SELECT count(*) FROM usuarios','pacientes'=>'SELECT count(*) FROM pacientes',
     'medicos'=>'SELECT count(*) FROM medicos','especialidades'=>'SELECT count(*) FROM especialidades',
 ] as $nombre=>$sql) { echo $nombre, ': ', $pdo->query($sql)->fetchColumn(), PHP_EOL; }
