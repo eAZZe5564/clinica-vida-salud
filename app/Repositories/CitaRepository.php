@@ -11,7 +11,9 @@ final class CitaRepository
         JOIN medicos m ON m.id=c.medico_id LEFT JOIN especialidades e ON e.id=c.especialidad_id';
     private const BASICOS = 'c.id,c.estado,c.fecha_hora_inicio,c.duracion_minutos,
         p.nombres AS paciente_nombres,p.apellidos AS paciente_apellidos,
-        m.nombres AS medico_nombres,m.apellidos AS medico_apellidos,e.nombre AS especialidad';
+        m.nombres AS medico_nombres,m.apellidos AS medico_apellidos,e.nombre AS especialidad,
+        (c.estado=\'programada\' AND m.activo AND p.activo AND COALESCE(e.activo,false)
+        AND EXISTS(SELECT 1 FROM medicos_especialidades me WHERE me.medico_id=c.medico_id AND me.especialidad_id=c.especialidad_id)) AS reprogramable';
 
     /** NULL representa gestión general; 0 representa médico sin vínculo, nunca acceso general. */
     private function restricciones(array $filtros, ?int $propio): array
@@ -62,6 +64,33 @@ final class CitaRepository
     public function bloquearMedico(int $id): ?array
     {
         $q=$this->pdo->prepare('SELECT id,activo FROM medicos WHERE id=:id FOR SHARE');$q->execute(['id'=>$id]);return $q->fetch()?:null;
+    }
+    /** CU15: solo identidad/agenda, sin motivo clínico ni datos de contacto. */
+    public function paraReprogramar(int $id,bool $bloquear=false): ?array
+    {
+        $q=$this->pdo->prepare('SELECT c.id,c.paciente_id,c.medico_id,c.especialidad_id,c.estado,c.fecha_hora_inicio,c.duracion_minutos,
+            p.nombres AS paciente_nombres,p.apellidos AS paciente_apellidos,
+            m.nombres AS medico_nombres,m.apellidos AS medico_apellidos,e.nombre AS especialidad
+            FROM citas c JOIN pacientes p ON p.id=c.paciente_id JOIN medicos m ON m.id=c.medico_id
+            LEFT JOIN especialidades e ON e.id=c.especialidad_id WHERE c.id=:id' . ($bloquear?' FOR UPDATE OF c':''));
+        $q->execute(['id'=>$id]);return $q->fetch()?:null;
+    }
+    public function actualizarHorario(int $id,string $inicio): void
+    {
+        $q=$this->pdo->prepare('UPDATE citas SET fecha_hora_inicio=:inicio WHERE id=:id');
+        $q->execute(['id'=>$id,'inicio'=>$inicio]);
+        if($q->rowCount()!==1){throw new \OutOfBoundsException();}
+    }
+    public function revisionReprogramacion(int $id): string
+    {
+        $q=$this->pdo->prepare('SELECT COALESCE(max(id),0) FROM citas_historial WHERE cita_id=:id');$q->execute(['id'=>$id]);
+        return (string)$q->fetchColumn();
+    }
+    public function registrarReprogramacion(array $cita,string $inicio,int $actor): void
+    {
+        $q=$this->pdo->prepare("INSERT INTO citas_historial(cita_id,tipo,inicio_anterior,inicio_nuevo,estado_anterior,estado_nuevo,usuario_id)
+            VALUES (:id,'reprogramacion',:anterior,:nuevo,'programada','programada',:actor)");
+        $q->execute(['id'=>$cita['id'],'anterior'=>$cita['fecha_hora_inicio'],'nuevo'=>$inicio,'actor'=>$actor]);
     }
     public function bloquearEspecialidad(int $id): ?array
     {

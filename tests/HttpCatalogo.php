@@ -5,14 +5,14 @@ final class HttpCatalogo
 {
     private mixed $proceso;
     private string $base;
-    public function __construct(?array $entorno=null)
+    public function __construct(?array $entorno=null,string $rutaComprobacion='/login',int $estadoComprobacion=200)
     {
         $puerto = random_int(30000,45000); $this->base = 'http://127.0.0.1:' . $puerto;
         $this->proceso = proc_open([PHP_BINARY,'-S','127.0.0.1:' . $puerto,'-t',dirname(__DIR__) . '/public'],
             [0=>['pipe','r'],1=>['file','NUL','a'],2=>['file','NUL','a']],$pipes,dirname(__DIR__),$entorno);
         if (!is_resource($this->proceso)) { throw new RuntimeException('No se pudo iniciar PHP'); }
         fclose($pipes[0]);
-        for ($i=0;$i<30;$i++) { usleep(100000); if ($this->pedir('/login')['status']===200) { return; } }
+        for ($i=0;$i<30;$i++) { usleep(100000); if ($this->pedir($rutaComprobacion)['status']===$estadoComprobacion) { return; } }
         $this->cerrar(); throw new RuntimeException('Servidor HTTP no disponible');
     }
     public function pedir(string $ruta, string $metodo='GET', string $cookie='', array $datos=[]): array

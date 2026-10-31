@@ -71,10 +71,11 @@ try{
         $r=$http->pedir($ruta,'GET',$cookie);$ok($r['status']===303&&str_starts_with($r['location'],'/login'),'logout bloquea acceso privado '.$ruta);
     }
     // Simulación solo local: otro proceso, sin editar .env ni conectar a otra base.
-    $produccion=new HttpCatalogo(array_merge(getenv(),['APP_ENV'=>'production']));
+    // La cookie nace en bootstrap, también en 404. No conectar la base local sin TLS como producción.
+    $produccion=new HttpCatalogo(array_merge(getenv(),['APP_ENV'=>'production']),'/prueba-cookie-produccion',404);
     try{
-        $r=$produccion->pedir('/login');$headers=strtolower(implode("\n",$r['headers']));
-        $ok($r['status']===200&&preg_match('/set-cookie: phpsessid=[^\n]+; secure(?:;|\s|$)/',$headers)===1,'APP_ENV del proceso prevalece y la cookie exige Secure en producción');
+        $r=$produccion->pedir('/prueba-cookie-produccion');$headers=strtolower(implode("\n",$r['headers']));
+        $ok($r['status']===404&&preg_match('/set-cookie: phpsessid=[^\n]+; secure(?:;|\s|$)/',$headers)===1,'APP_ENV del proceso prevalece y la cookie exige Secure en producción');
     }finally{$produccion->cerrar();}
 }finally{
     if($http!==null){$http->cerrar();}

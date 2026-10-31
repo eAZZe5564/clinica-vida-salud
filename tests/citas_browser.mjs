@@ -51,7 +51,45 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.consulta) {
+    if (data.reprogramar) {
+        const directory = resolve('tests/artifacts/cu15'); await mkdir(directory, { recursive: true });
+        const captures = [];
+        const screenshot = async (name) => {
+            const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const path = join(directory, name); await writeFile(path, Buffer.from(shot.data, 'base64')); captures.push(path);
+        };
+        await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${data.cita}/reprogramar` }));
+        check(await evaluate('!!document.querySelector("[data-reprogramar]")&&document.querySelectorAll("[name=hora_inicio]").length===8'), 'Formulario CU15 con turnos reales');
+        check(await evaluate('document.body.innerText.includes("Horario actual")&&document.body.innerText.includes("Nuevo horario solicitado")'), 'Horarios distinguidos en pantalla');
+        await evaluate('document.querySelector("[name=hora_inicio][value=\\"08:00\\"]").click()');
+        await navigation(() => evaluate('document.querySelector("[data-reprogramar]").requestSubmit(document.querySelector("button[value=revisar]"))'));
+        check(await evaluate('document.body.innerText.includes("ningún cambio que guardar")'), 'Turno actual informa sin cambios en navegador');
+        await evaluate('document.querySelector("[name=hora_inicio][value=\\"10:00\\"]").click()');
+        check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), 'CU15 escritorio sin desbordamiento');
+        await screenshot('formulario-escritorio.png');
+        await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+        check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), 'CU15 móvil sin desbordamiento');
+        check(await evaluate('getComputedStyle(document.querySelector(".reprogramar-grid")).gridTemplateColumns.split(" ").length===2'), 'Turnos táctiles en dos columnas móviles');
+        await screenshot('formulario-movil.png');
+        await navigation(() => evaluate('document.querySelector("[data-reprogramar]").requestSubmit(document.querySelector("button[value=revisar]"))'));
+        check(await evaluate('!!document.querySelector("[data-reprogramar-confirmar]")&&document.body.innerText.includes("08:00–08:30")&&document.body.innerText.includes("10:00–10:30")'), 'Revisión real antes de guardar');
+        check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), 'Resumen móvil sin desbordamiento');
+        await screenshot('revision-movil.png');
+        await navigation(() => evaluate('document.querySelector("[data-reprogramar-confirmar]").requestSubmit()'));
+        check(await evaluate(`location.pathname==='/citas/${data.cita}'&&document.body.innerText.includes('Cita reprogramada correctamente')&&document.body.innerText.includes('10:00–10:30')`), 'PRG y confirmación de horario nuevo');
+        await screenshot('confirmacion-movil.png');
+        await navigation(() => send('Page.reload'));
+        check(await evaluate('document.body.innerText.includes("10:00–10:30")'), 'Recarga GET conserva reprogramación');
+        await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${data.cita}/reprogramar` }));
+        await evaluate(`document.querySelector('[name=fecha]').value=${JSON.stringify(data.nuevaFecha)}`);
+        await navigation(() => evaluate('document.querySelector("[data-reprogramar]").requestSubmit(document.querySelector("button[value=actualizar]"))'));
+        check(await evaluate(`document.querySelector('[name=fecha]').value===${JSON.stringify(data.nuevaFecha)}&&document.querySelectorAll('[name=hora_inicio]').length===8`), 'Nueva fecha consulta CU12 en servidor');
+        await evaluate('document.querySelector("[name=hora_inicio][value=\\"11:00\\"]").click()');
+        await navigation(() => evaluate('document.querySelector("[data-reprogramar]").requestSubmit(document.querySelector("button[value=revisar]"))'));
+        await navigation(() => evaluate('document.querySelector("[data-reprogramar-confirmar]").requestSubmit()'));
+        check(await evaluate('document.body.innerText.includes("11:00–11:30")'), 'Cambio de fecha y hora desde celular');
+        result = { assertions, captures };
+    } else if (data.consulta) {
         // CU14 utiliza el mismo navegador real; toda la navegación es de lectura.
         const directory = resolve('tests/artifacts/consulta-citas'); await mkdir(directory, { recursive: true });
         const captures = [];

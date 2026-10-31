@@ -32,7 +32,7 @@ final class DisponibilidadRepository
         if($propio!==null){$sql.=' AND m.id=:propio';$params['propio']=$propio;}
         $q=$this->pdo->prepare($sql . ' ORDER BY m.apellidos,m.nombres,m.id');$q->execute($params);return $q->fetchAll();
     }
-    public function ocupaciones(int $medico,string $desde,string $hasta): array
+    public function ocupaciones(int $medico,string $desde,string $hasta,?int $excluirCita=null): array
     {
         // [inicio,fin): incluye reservas que comenzaron antes del día consultado.
         // Programada coincide con el predicado de la exclusión GiST del esquema.
@@ -40,7 +40,9 @@ final class DisponibilidadRepository
             WHERE medico_id=:medico AND estado='programada'
             AND fecha_hora_inicio<CAST(:hasta AS timestamptz)
             AND fecha_hora_inicio+make_interval(mins=>duracion_minutos)>CAST(:desde AS timestamptz)
-            ORDER BY fecha_hora_inicio");
-        $q->execute(['medico'=>$medico,'desde'=>$desde,'hasta'=>$hasta]);return $q->fetchAll();
+            " . ($excluirCita===null?'':'AND id<>:excluir') . " ORDER BY fecha_hora_inicio");
+        $params=['medico'=>$medico,'desde'=>$desde,'hasta'=>$hasta];
+        if($excluirCita!==null){$params['excluir']=$excluirCita;}
+        $q->execute($params);return $q->fetchAll();
     }
 }

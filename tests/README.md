@@ -1,5 +1,22 @@
 # Pruebas
 
+Cierre CU15 8C: `php tests/esquema_cu15_validation.php` (53) ejecuta el verificador
+SQL compartido en READ ONLY sobre desarrollo local con 005 y catálogos aislados
+8/10 y 9/12. No crea ni elimina objetos o registros. `php scripts/verificar-cu15-local.php`
+verifica cualquiera de los dos esquemas reales sin migrar. Regresión de herramientas:
+`php tests/render_sql_local.php` (3, READ ONLY), `php tests/render_preparacion.php`
+(24, sin red) y `powershell -NoProfile -File tests/render_preparacion.ps1` (34, sin red).
+Son 114 comprobaciones ejecutadas en 8C; las 1124 funcionales de 8A son resultados
+históricos, no una regresión funcional reejecutada en este cierre.
+
+CU15 (Ciclo 2, solo local): `php tests/reprogramacion_integration.php` (36),
+`php tests/reprogramacion_concurrency.php` (34), `php tests/http_reprogramacion.php` (35)
+y `php tests/reprogramacion_browser.php` (16). Requieren migración 005 previamente
+autorizada y aplicada. `php tests/regresion_cu15.php` ejecuta las 26 suites históricas
+(1003 comprobaciones); admite el nombre de una suite para reanudar desde ella si las
+anteriores aprobaron y no cambió el código que cubren. Detalle y límites:
+[informe CU15](../docs/ciclo2/PRUEBAS_CU15.md). Nunca apuntar las pruebas a Render.
+
 Preparación Render 7A: `php tests/render_preparacion.php` (24 guardas/CLI sin red), `powershell -NoProfile -File tests/render_preparacion.ps1` (16 de URL, aislamiento de proceso, stdin Unicode y errores sin secretos), `php tests/render_sql_local.php` (3 comprobaciones SQL reales en READ ONLY con rollback; nunca migra). `render_proceso_probe.php` solo apoya el test de subprocesos y usa datos ficticios. Docker no está disponible; no se afirma una construcción o prueba de Apache. Guía: [DESPLIEGUE_RENDER.md](../docs/ciclo1/DESPLIEGUE_RENDER.md).
 
 Desde la raíz del proyecto:

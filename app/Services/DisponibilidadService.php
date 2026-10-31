@@ -44,7 +44,7 @@ final class DisponibilidadService
         $e=$this->repo->especialidad($id);
         if(!$e || !$e['activo']){throw new CatalogoValidacionException(['especialidad_id'=>'La especialidad no existe o está inactiva.']);}
     }
-    public function consultar(int $medico,string $fecha,?int $especialidad=null): array
+    public function consultar(int $medico,string $fecha,?int $especialidad=null,?int $excluirCita=null): array
     {
         $entrada=['medico_id'=>$medico,'fecha'=>$fecha,'especialidad_id'=>$especialidad??''];
         $this->validarParametros($entrada);$ahora=$this->ahora();
@@ -59,7 +59,7 @@ final class DisponibilidadService
             $tramos=$this->horarios->tramosParaFecha($medico,$fecha);
             $desde=new DateTimeImmutable($fecha . ' 00:00:00',HorarioAtencion::zona());$hasta=$desde->modify('+1 day');
             $ocupadas=[];
-            foreach($this->repo->ocupaciones($medico,$desde->format('c'),$hasta->format('c')) as $fila){
+            foreach($this->repo->ocupaciones($medico,$desde->format('c'),$hasta->format('c'),$excluirCita) as $fila){
                 $inicio=(new DateTimeImmutable($fila['fecha_hora_inicio']))->setTimezone(HorarioAtencion::zona());
                 $ocupadas[]=[$inicio,$inicio->modify('+' . (int)$fila['duracion_minutos'] . ' minutes')];
             }
