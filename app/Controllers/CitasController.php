@@ -12,6 +12,7 @@ use App\Repositories\PacienteRepository;
 use App\Services\CatalogoValidacionException;
 use App\Models\HorarioAtencion;
 use App\Services\ConsultaCitaService;
+use App\Services\AsistenciaService;
 
 /** CU13: reservas administrativas. CU14: lectura con alcance por rol. */
 final class CitasController extends CatalogoController
@@ -31,6 +32,8 @@ final class CitasController extends CatalogoController
         $resultado=['filas'=>[],'total'=>0,'pagina'=>1,'paginas'=>1];
         try{$filtros=$consulta->validar($_GET);$resultado=$consulta->listar($filtros);}
         catch(CatalogoValidacionException $e){http_response_code(422);$errores=$e->errores;}
+        $ahora=(new AsistenciaService($this->pdo,new CitaRepository($this->pdo)))->ahora();
+        foreach($resultado['filas'] as &$fila){$fila['acciones_asistencia']=AsistenciaService::acciones($fila,$this->actor['rol'],$ahora);}unset($fila);
         $sinVinculo=$consulta->propio===0;$opciones=$consulta->opciones();
         $this->pagina('citas/index','Citas médicas',compact('filtros','resultado','errores','sinVinculo')+$opciones);
     }
@@ -43,7 +46,10 @@ final class CitasController extends CatalogoController
         try{$filtros=$consulta->validar($_GET);$volver.='?' . http_build_query(array_filter($filtros,static fn($v)=>$v!==''));}
         catch(CatalogoValidacionException){ /* Un retorno inválido nunca habilita otra agenda ni una URL externa. */ }
         $verMotivo=$consulta->verMotivo;$verCreador=$consulta->verCreador;
-        $this->pagina('citas/show','Detalle de cita',compact('cita','volver','verMotivo','verCreador'));
+        $repo=new CitaRepository($this->pdo);$ahora=(new AsistenciaService($this->pdo,$repo))->ahora();
+        $accionesAsistencia=AsistenciaService::acciones($cita,$this->actor['rol'],$ahora);
+        $historialAsistencia=$repo->historialAdministrativo($id,$this->actor['rol']==='administrador');
+        $this->pagina('citas/show','Detalle de cita',compact('cita','volver','verMotivo','verCreador','accionesAsistencia','historialAsistencia'));
     }
     public function crear(): void
     {

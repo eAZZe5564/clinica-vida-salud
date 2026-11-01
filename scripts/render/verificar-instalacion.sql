@@ -1,4 +1,4 @@
--- Esquema 001-004 (8/10), 001-005/006/007 (9/12, contratos estrictos por versión).
+-- Esquema 001-004 (8/10), 001-005/006/007/008 (9/12, contratos estrictos).
 -- Solo catalogos y comprobaciones. No instala ni modifica objetos o registros.
 DO $$
 DECLARE
@@ -33,6 +33,9 @@ DECLARE
     ciclo2 boolean;
     cancelaciones boolean;
     confirmaciones boolean;
+    asistencias boolean;
+    indices_esperados jsonb := '{"citas_historial_pkey":["id"],"citas_historial_cita_fecha_idx":["cita_id","cambiado_en","id"]}';
+    predicado_asistencia text := '((tipo)::text = ANY ((ARRAY[''llegada''::character varying, ''atencion''::character varying, ''inasistencia''::character varying])::text[]))';
     estados_citas text := 'CHECK (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''cancelada''::character varying, ''atendida''::character varying])::text[])))';
     exclusion_citas text := 'EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE ''UTC''::text), ((fecha_hora_inicio AT TIME ZONE ''UTC''::text) + make_interval(mins => (duracion_minutos)::integer)), ''[)''::text) WITH &&) WHERE (((estado)::text = ''programada''::text))';
     tipo_historial text := 'CHECK (((tipo)::text = ''reprogramacion''::text))';
@@ -73,6 +76,7 @@ BEGIN
     ciclo2 := COALESCE(ciclo2,false);
     cancelaciones := esquema->'columnas' ? 'citas_historial.motivo_cancelacion';
     confirmaciones := position('confirmada' IN COALESCE(esquema->'restricciones'->'citas.citas_estado_valido'->>'definicion',''))>0;
+    asistencias := position('presente' IN COALESCE(esquema->'restricciones'->'citas.citas_estado_valido'->>'definicion',''))>0;
     IF ciclo2 THEN
         tablas_esperadas := tablas_esperadas || '["citas_historial"]'::jsonb;
         columnas_esperadas := columnas_esperadas || '{
@@ -113,6 +117,22 @@ BEGIN
            OR esquema->'funcion_citas'->>'definidor' IS DISTINCT FROM 'false' THEN
             RAISE EXCEPTION 'Esquema incompatible: funcion del trigger no corresponde a 007';
         END IF;
+    END IF;
+    IF asistencias THEN
+        IF NOT confirmaciones THEN RAISE EXCEPTION 'Esquema incompatible: 008 requiere 007 completa'; END IF;
+        estados_citas := 'CHECK (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''cancelada''::character varying, ''atendida''::character varying, ''confirmada''::character varying, ''presente''::character varying, ''inasistencia''::character varying])::text[])))';
+        exclusion_citas := 'EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE ''UTC''::text), ((fecha_hora_inicio AT TIME ZONE ''UTC''::text) + make_interval(mins => (duracion_minutos)::integer)), ''[)''::text) WITH &&) WHERE (((estado)::text = ANY ((ARRAY[''programada''::character varying, ''confirmada''::character varying, ''presente''::character varying, ''atendida''::character varying, ''inasistencia''::character varying])::text[])))';
+        tipo_historial := 'CHECK (((tipo)::text = ANY ((ARRAY[''reprogramacion''::character varying, ''cancelacion''::character varying, ''confirmacion''::character varying, ''llegada''::character varying, ''atencion''::character varying, ''inasistencia''::character varying])::text[])))';
+        evento_historial := 'CHECK (((((tipo)::text = ''reprogramacion''::text) AND (inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''programada''::text)) OR (((tipo)::text = ''cancelacion''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''cancelada''::text)) OR (((tipo)::text = ''confirmacion''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ''programada''::text) AND ((estado_nuevo)::text = ''confirmada''::text)) OR (((tipo)::text = ''llegada''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ANY ((ARRAY[''programada''::character varying, ''confirmada''::character varying])::text[])) AND ((estado_nuevo)::text = ''presente''::text)) OR (((tipo)::text = ''atencion''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ''presente''::text) AND ((estado_nuevo)::text = ''atendida''::text)) OR (((tipo)::text = ''inasistencia''::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = ANY ((ARRAY[''programada''::character varying, ''confirmada''::character varying])::text[])) AND ((estado_nuevo)::text = ''inasistencia''::text))))';
+        indices_esperados := indices_esperados || '{"citas_historial_asistencia_unica_idx":["cita_id","tipo"]}'::jsonb;
+        IF esquema->'restricciones'->'citas_historial.citas_historial_asistencia_tiempo_valido'->>'tipo' IS DISTINCT FROM 'c'
+           OR esquema->'restricciones'->'citas_historial.citas_historial_asistencia_tiempo_valido'->>'valida' IS DISTINCT FROM 'true'
+           OR esquema->'restricciones'->'citas_historial.citas_historial_asistencia_tiempo_valido'->>'definicion' IS DISTINCT FROM
+            'CHECK (((((tipo)::text <> ''atencion''::text) OR (cambiado_en >= inicio_nuevo)) AND (((tipo)::text <> ''inasistencia''::text) OR (cambiado_en >= (inicio_nuevo + ''00:30:00''::interval)))))' THEN
+            RAISE EXCEPTION 'Esquema incompatible: limites temporales de asistencia';
+        END IF;
+    ELSIF esquema->'restricciones' ? 'citas_historial.citas_historial_asistencia_tiempo_valido' THEN
+        RAISE EXCEPTION 'Esquema incompatible: instalacion parcial de 008';
     END IF;
     IF NOT ((esquema->'tablas') @> tablas_esperadas AND tablas_esperadas @> (esquema->'tablas'))
        OR jsonb_array_length(esquema->'tablas') <> (CASE WHEN ciclo2 THEN 9 ELSE 8 END) THEN
@@ -170,20 +190,21 @@ BEGIN
            OR esquema->'restricciones'->'citas_historial.citas_historial_reprogramacion_valida'->>'definicion' IS DISTINCT FROM evento_historial THEN
             RAISE EXCEPTION 'Esquema incompatible: identidad, PK, fecha o restricciones de historial';
         END IF;
-        IF (SELECT count(*) FROM jsonb_object_keys(esquema->'indices_historial')) <> 2 THEN
-            RAISE EXCEPTION 'Esquema incompatible: se esperan los dos indices de historial';
+        IF (SELECT count(*) FROM jsonb_object_keys(esquema->'indices_historial')) <> (CASE WHEN asistencias THEN 3 ELSE 2 END) THEN
+            RAISE EXCEPTION 'Esquema incompatible: indices de historial segun la version';
         END IF;
-        FOR campo IN SELECT key,value FROM jsonb_each('{"citas_historial_pkey":["id"],"citas_historial_cita_fecha_idx":["cita_id","cambiado_en","id"]}'::jsonb) LOOP
+        FOR campo IN SELECT key,value FROM jsonb_each(indices_esperados) LOOP
             indice := esquema->'indices_historial'->campo.key;
             IF indice IS NULL OR indice->>'metodo' IS DISTINCT FROM 'btree' OR indice->>'valido' IS DISTINCT FROM 'true' OR indice->>'listo' IS DISTINCT FROM 'true'
                OR indice->'columnas' IS DISTINCT FROM campo.value
                OR (indice->>'atributos')::int IS DISTINCT FROM jsonb_array_length(campo.value)
                OR (indice->>'claves')::int IS DISTINCT FROM jsonb_array_length(campo.value)
-               OR indice->>'predicado' IS NOT NULL
-               OR indice->>'definicion' IS DISTINCT FROM (CASE WHEN campo.key='citas_historial_pkey'
-                  THEN 'CREATE UNIQUE INDEX citas_historial_pkey ON public.citas_historial USING btree (id)'
+               OR indice->>'predicado' IS DISTINCT FROM (CASE WHEN campo.key='citas_historial_asistencia_unica_idx' THEN predicado_asistencia ELSE NULL END)
+               OR indice->>'definicion' IS DISTINCT FROM (CASE campo.key
+                  WHEN 'citas_historial_pkey' THEN 'CREATE UNIQUE INDEX citas_historial_pkey ON public.citas_historial USING btree (id)'
+                  WHEN 'citas_historial_asistencia_unica_idx' THEN 'CREATE UNIQUE INDEX citas_historial_asistencia_unica_idx ON public.citas_historial USING btree (cita_id, tipo) WHERE ' || predicado_asistencia
                   ELSE 'CREATE INDEX citas_historial_cita_fecha_idx ON public.citas_historial USING btree (cita_id, cambiado_en, id)' END)
-               OR (indice->>'unico')::boolean IS DISTINCT FROM (campo.key='citas_historial_pkey') THEN
+               OR (indice->>'unico')::boolean IS DISTINCT FROM (campo.key IN ('citas_historial_pkey','citas_historial_asistencia_unica_idx')) THEN
                 RAISE EXCEPTION 'Esquema incompatible: definicion o validez de indices de historial';
             END IF;
         END LOOP;

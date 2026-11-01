@@ -16,9 +16,9 @@ Complementa [el mapa del Ciclo 1](../ciclo1/MAPA_DEL_CODIGO.md), que se conserva
 | `database/migrations/005_citas_historial.sql` | Entidad de historial con relación N:1 a cita y usuario responsable |
 | `scripts/aplicar-migracion-005.php` | Aplicación manual local autorizada, transaccional, sin reejecución automática |
 | `scripts/inspeccionar-cu15-local.php`, `tests/Cu15Local.php` | Guarda de host/base/versión y revisión READ ONLY de esquema/huellas |
-| `scripts/render/verificar-instalacion.sql` | Contratos estrictos 001–004 (8/10), 001–005/006/007 (9/12), columnas, CHECK, GiST, función del trigger, referencias e índices; solo lectura |
+| `scripts/render/verificar-instalacion.sql` | Contratos estrictos 001–004 (8/10), 001–005/006/007/008 (9/12), columnas, CHECK, GiST, función del trigger, referencias e índices; solo lectura |
 | `scripts/verificar-cu15-local.php` | Entrada local protegida al contrato de esquema, REPEATABLE READ READ ONLY, sin migraciones |
-| `tests/esquema_cu15_validation.php` | SQL real y catálogos aislados 001–004/005/006/007, rechazo de variantes parciales o debilitadas, sin DDL ni modificaciones de registros |
+| `tests/esquema_cu15_validation.php` | SQL real y catálogos aislados 001–004/005/006/007/008, rechazo de variantes parciales o debilitadas, sin DDL ni modificaciones de registros |
 | `tests/ReprogramacionPrueba.php` | Fixtures locales y limpieza limitada a sus IDs; proxy para fallos de persistencia sin DDL |
 | `tests/reprogramacion_integration.php` | Reglas, identidad, historial, fallos y rollback |
 | `tests/reprogramacion_concurrency.php` | Seis carreras con procesos/sesiones PostgreSQL independientes |
@@ -54,7 +54,7 @@ mediante la misma fila de médico. La vista previa es informativa y no bloquea n
 Secuencia CU16: Actor → Router → CancelacionesController → CancelacionService →
 CitaRepository → PostgreSQL. Médico FOR SHARE → cita FOR UPDATE → actor FOR SHARE;
 estado e historial confirman o revierten juntos. CU12 solo libera la ocupación
-después del commit. No hay rutas de asistencia ni reasignación de médico.
+después del commit. CU16 no implementa asistencia ni reasignación de médico.
 
 ## CU17
 
@@ -85,3 +85,42 @@ identidad y relaciones. CitasHistorial agrega el tipo confirmacion y la transici
 programada → confirmada con inicios iguales y motivo NULL. No hay nuevas entidades.
 Secuencia: médico FOR SHARE → cita FOR UPDATE → relectura de estado/revisión →
 usuario FOR SHARE → UPDATE estado → INSERT historial → COMMIT → 303 al detalle.
+
+## CU18
+
+Las secciones anteriores describen cada entrega. Desde 008 la política compartida
+de ocupación es programada/confirmada/presente/atendida/inasistencia; solo cancelada
+libera. CU15–CU17 conservan sus transiciones y rechazan los nuevos estados.
+
+| Archivo | Responsabilidad / UML |
+|---|---|
+| `app/Controllers/AsistenciasController.php` | Pantallas GET/POST, sesión, CSRF, confirmación explícita, errores y PRG |
+| `app/Services/AsistenciaService.php` | Autorización por acción/vínculo, estado/tiempo/revisión, transacción y coordinación con CU11–CU17 |
+| `app/Repositories/CitaRepository.php` | Consulta con médico vinculado, UPDATE condicionado, evento con actor/momento y consulta administrativa limitada |
+| `app/Controllers/CitasController.php` | Integración CU14: acciones elegibles, marcas y trazabilidad solo tras verificar acceso a la cita |
+| `app/Models/Cita.php` | Catálogo con Presente e Inasistencia |
+| `app/Views/citas/asistencia.php`, `asistencia-error.php`, `asistencia-resumen.php` | Confirmación, rechazo, marcas y traza; llegada distinta de atención, sin texto clínico |
+| `app/Views/citas/index.php`, `show.php`, `public/assets/css/app.css` | Acciones, estados, avisos y tabla adaptable con etiquetas en celular |
+| `public/index.php` | GET/POST `/citas/{id}/llegada`, `/atencion`, `/inasistencia`; ID y método cerrados |
+| `app/Repositories/DisponibilidadRepository.php` | CU12/CU13 conservan ocupación de los cinco estados |
+| `app/Repositories/HorarioRepository.php`, `app/Services/HorarioService.php`, `app/Views/horarios/status.php` | CU11 protege la cobertura hasta el fin del intervalo, incluso atención completada antes de terminar |
+| `scripts/inspeccionar-horarios.php` | Diagnóstico con la misma política de intervalos vigentes |
+| `database/migrations/008_citas_asistencia.sql` | CHECK de estados/eventos/tiempos, ampliación GiST e índice único parcial; nueve tablas/doce FK |
+| `scripts/aplicar-migracion-008.php` | Guarda local/versión/007, conflictos y DDL verificado en una sola transacción autorizada |
+| `scripts/inspeccionar-cu18-local.php` | Inspección READ ONLY del contrato y conteos de superposiciones/duplicados |
+| `tests/AsistenciaPrueba.php` | Composición de fixtures, reloj simulado por constructor y cita cercana al reloj real sin omitir restricciones |
+| `tests/asistencia_integration.php`, `http_asistencia.php` | Reglas, identidad, autorización, rollback, GiST, CSRF/XSS y recorrido HTTP con reloj real |
+| `tests/asistencia_concurrency.php` | Dieciséis carreras, conexiones independientes y comprobación de bloqueos/rollback |
+| `tests/asistencia_browser.php`, `tests/citas_browser.mjs` | Edge real escritorio/móvil, llegada y finalización con médico propio; capturas ignoradas |
+| `tests/disponibilidad_integration.php`, `http_horarios_integration.php` | Expectativa de atendida ocupada tras 008 y nuevo mensaje de cobertura, sin eliminar verificaciones |
+
+Entidades: Cita conserva identidad y relaciones; CitasHistorial conserva su esquema
+y agrega tipos llegada/atencion/inasistencia. No existe una entidad de atención
+clínica ni un historial de diagnósticos. El estado presente es intermedio.
+
+Secuencia: Actor → Router → AsistenciasController → AsistenciaService →
+CitaRepository → PostgreSQL. Médico FOR SHARE → cita FOR UPDATE → actor FOR SHARE →
+relectura de permiso/estado/hora/revisión → UPDATE estado + INSERT historial →
+COMMIT → 303 al detalle. Cualquier error revierte ambas escrituras. El reloj por
+defecto es PostgreSQL, no una entrada del navegador. Administrador/recepción
+registran llegada o inasistencia; únicamente el médico propio finaliza.

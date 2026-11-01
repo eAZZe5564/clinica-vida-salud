@@ -35,8 +35,8 @@ try{
     $ok($http->pedir($ruta . '/estado','POST',$c,['_csrf'=>$token,'activo'=>'0'])['status']===303 && !$servicio->obtener($id)['activo'],'desactivar HTTP conserva fila');
     $ok($http->pedir($ruta . '/estado','POST',$c,['_csrf'=>$token,'activo'=>'1'])['status']===303,'reactivar HTTP');
     $p=$fixture->paciente();$fecha=(new DateTimeImmutable('next monday',App\Models\HorarioAtencion::zona()))->modify('+14 days')->setTime(9,0);$fixture->cita($m,$p,$fecha->format('c'));
-    $r=$http->pedir($ruta . '/estado','POST',$c,['_csrf'=>$token,'activo'=>'0']);$ok($r['status']===422 && str_contains($r['body'],'cita futura'),'desactivación HTTP protege cita futura');
-    $r=$http->pedir($ruta . '/editar','POST',$c,array_replace($base,['_csrf'=>$token,'hora_inicio'=>'09:30']));$ok($r['status']===422 && str_contains($r['body'],'cita futura'),'edición HTTP protege cita futura');
+    $r=$http->pedir($ruta . '/estado','POST',$c,['_csrf'=>$token,'activo'=>'0']);$ok($r['status']===422 && str_contains($r['body'],'intervalo vigente'),'desactivación HTTP protege cita futura');
+    $r=$http->pedir($ruta . '/editar','POST',$c,array_replace($base,['_csrf'=>$token,'hora_inicio'=>'09:30']));$ok($r['status']===422 && str_contains($r['body'],'intervalo vigente'),'edición HTTP protege cita futura');
     $ok($servicio->obtener($id)['activo'],'fallo de protección conserva horario');
     $r=$http->pedir('/medicos/' . $m,'GET',$c);$ok($r['status']===200 && str_contains($r['body'],'Horarios semanales registrados') && str_contains($r['body'],$ruta),'detalle médico integra horarios');
     $q=$pdo->prepare('UPDATE medicos SET nombres=:nombre WHERE id=:id');$q->execute(['nombre'=>'<script>Ficticio</script>','id'=>$otro]);

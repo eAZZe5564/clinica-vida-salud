@@ -51,7 +51,60 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.confirmarCita) {
+    if (data.asistencia) {
+        const directory = resolve('tests/artifacts/cu18'); await mkdir(directory, { recursive: true });
+        const captures = [];
+        const screenshot = async (name) => {
+            const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const path = join(directory, name); await writeFile(path, Buffer.from(shot.data, 'base64')); captures.push(path);
+        };
+        const cambiarUsuario = async (correo) => {
+            await navigation(() => send('Page.navigate', { url: `${data.base}/dashboard` }));
+            await navigation(() => evaluate('document.querySelector("form[action=\\"/logout\\"]").requestSubmit()'));
+            await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
+            await navigation(() => evaluate(`document.querySelector('[name=correo]').value=${JSON.stringify(correo)};document.querySelector('[name=contrasena]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
+        };
+        for (let i = 0; i < data.casos.length; i++) {
+            const caso = data.casos[i]; const mobile = i === 1; const label = mobile ? 'movil' : 'escritorio';
+            if (i > 0) await cambiarUsuario(data.correo);
+            await send('Emulation.setDeviceMetricsOverride', { width: mobile ? 390 : 1440, height: mobile ? 844 : 1000, deviceScaleFactor: 1, mobile });
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${caso.cita}` }));
+            check(await evaluate(`!!document.querySelector('a[href="/citas/${caso.cita}/llegada"]')&&!document.querySelector('a[href="/citas/${caso.cita}/atencion"]')`), `Permisos administrativos visibles ${label}`);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${caso.cita}/inasistencia` }));
+            check(await evaluate('document.body.innerText.includes("inasistencia solo puede registrarse después")'), `Inasistencia prematura bloqueada ${label}`);
+            await screenshot(`inasistencia-rechazada-${label}.png`);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${caso.cita}/llegada` }));
+            check(await evaluate('!!document.querySelector("[data-asistencia-confirmar]")&&document.body.innerText.includes("Todavía no finaliza la atención")'), `Confirmación de llegada diferenciada ${label}`);
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), `Llegada ${label} sin desbordamiento`);
+            await screenshot(`llegada-${label}.png`);
+            await navigation(() => evaluate('document.querySelector(".form-actions a").click()'));
+            check(await evaluate(`!!document.querySelector('a[href="/citas/${caso.cita}/llegada"]')`), `Volver no guarda llegada ${label}`);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${caso.cita}/llegada` }));
+            await navigation(() => evaluate('document.querySelector("[data-asistencia-confirmar]").requestSubmit(document.querySelector("button[value=confirmar]"))'));
+            check(await evaluate('document.body.innerText.includes("Llegada registrada correctamente")&&document.body.innerText.includes("Presente")'), `Llegada real con PRG ${label}`);
+            await cambiarUsuario(caso.correoMedico);
+            await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${caso.cita}` }));
+            check(await evaluate(`!!document.querySelector('a[href="/citas/${caso.cita}/atencion"]')&&!document.body.innerText.includes('Trazabilidad administrativa')`), `Médico propio finaliza sin traza administrativa ${label}`);
+            await navigation(() => evaluate(`document.querySelector('a[href="/citas/${caso.cita}/atencion"]').click()`));
+            check(await evaluate('!!document.querySelector("[data-asistencia-confirmar]")&&document.body.innerText.includes("atención médica ha terminado")'), `Confirmación distinta para finalizar ${label}`);
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), `Atención ${label} sin desbordamiento`);
+            await screenshot(`atencion-${label}.png`);
+            await navigation(() => evaluate('document.querySelector("[data-asistencia-confirmar]").requestSubmit(document.querySelector("button[value=confirmar]"))'));
+            check(await evaluate('document.body.innerText.includes("Atención completada registrada correctamente")&&document.body.innerText.includes("Atendida")'), `Atención real completada ${label}`);
+            check(await evaluate(`['llegada','atencion','inasistencia','reprogramar','cancelar','confirmar'].every(accion=>!document.querySelector('a[href="/citas/${caso.cita}/'+accion+'"]'))`), `Estado terminal sin acciones incompatibles ${label}`);
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), `Detalle terminado ${label} sin desbordamiento`);
+            await screenshot(`resultado-${label}.png`);
+            await navigation(() => send('Page.reload'));
+            check(await evaluate('!document.body.innerText.includes("Atención completada registrada correctamente")&&document.body.innerText.includes("Atendida")'), `Recarga no repite operación ${label}`);
+        }
+        await cambiarUsuario(data.correo);
+        await navigation(() => send('Page.navigate', { url: `${data.base}/citas/${data.casos[0].cita}` }));
+        check(await evaluate('document.body.innerText.includes("Trazabilidad administrativa")&&document.body.innerText.includes("Atención completada")&&document.querySelectorAll(".asistencia-historial tbody tr").length===2'), 'Administrador consulta llegada y atención de responsables distintos');
+        check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1&&[...document.querySelectorAll(".asistencia-historial,.asistencia-historial td")].every(el=>el.getBoundingClientRect().right<=innerWidth+1)'), 'Tabla y celdas de trazabilidad dentro de la pantalla móvil');
+        check(await evaluate('[...document.querySelectorAll(".asistencia-historial td")].every(el=>!!el.dataset.label&&getComputedStyle(el,"::before").content!=="none")'), 'Trazabilidad móvil con etiquetas visibles');
+        await screenshot('trazabilidad-admin-movil.png');
+        result = { assertions, captures };
+    } else if (data.confirmarCita) {
         const directory = resolve('tests/artifacts/cu17'); await mkdir(directory, { recursive: true });
         const captures = [];
         const screenshot = async (name) => {

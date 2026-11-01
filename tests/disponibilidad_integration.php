@@ -31,7 +31,7 @@ try{
     $q=$pdo->prepare("UPDATE citas SET estado='cancelada' WHERE id=:id");$q->execute(['id'=>$c]);
     $ok(count($servicio->consultar($m,$fecha)['turnos'])===8,'cancelada libera disponibilidad en consulta siguiente');
     $q=$pdo->prepare("UPDATE citas SET estado='atendida' WHERE id=:id");$q->execute(['id'=>$c]);
-    $ok(count($servicio->consultar($m,$fecha)['turnos'])===8,'atendida no es reserva activa según política GiST');
+    $ok(count($servicio->consultar($m,$fecha)['turnos'])===7,'atendida conserva intervalo histórico según GiST ampliado en CU18');
     $q=$pdo->prepare("UPDATE citas SET estado='programada',fecha_hora_inicio=:fecha WHERE id=:id");$q->execute(['id'=>$c,'fecha'=>$lunes->setTime(9,15)->format('c')]);
     $libres=$horas($servicio->consultar($m,$fecha));$ok(count($libres)===6 && !in_array('09:00',$libres,true) && !in_array('09:30',$libres,true),'cita desplazada bloquea ambos candidatos superpuestos');
     $q=$pdo->prepare('DELETE FROM citas WHERE id=:id');$q->execute(['id'=>$c]);

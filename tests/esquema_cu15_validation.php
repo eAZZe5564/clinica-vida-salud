@@ -15,7 +15,14 @@ try{
     $pdo->exec($sql);$ok(true,'verificador completo sobre esquema local real');
     $real=json_decode($pdo->query($lectura)->fetchColumn(),true,512,JSON_THROW_ON_ERROR);
     $ok(count($real['tablas'])===9&&count($real['referencias'])===12&&$real['historial_tipo']==='r','base local real posterior a 005: nueve tablas y doce FK');
-    $cu16=$real;
+    $cu17=$real;
+    // Aislar el contrato 007 sin cambiar la base real que puede tener 008.
+    unset($cu17['indices_historial']['citas_historial_asistencia_unica_idx'],$cu17['restricciones']['citas_historial.citas_historial_asistencia_tiempo_valido']);
+    $cu17['restricciones']['citas.citas_estado_valido']['definicion']="CHECK (((estado)::text = ANY ((ARRAY['programada'::character varying, 'cancelada'::character varying, 'atendida'::character varying, 'confirmada'::character varying])::text[])))";
+    $cu17['restricciones']['citas.citas_medico_sin_superposicion']['definicion']="EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE 'UTC'::text), ((fecha_hora_inicio AT TIME ZONE 'UTC'::text) + make_interval(mins => (duracion_minutos)::integer)), '[)'::text) WITH &&) WHERE (((estado)::text = ANY ((ARRAY['programada'::character varying, 'confirmada'::character varying])::text[])))";
+    $cu17['restricciones']['citas_historial.citas_historial_tipo_valido']['definicion']="CHECK (((tipo)::text = ANY ((ARRAY['reprogramacion'::character varying, 'cancelacion'::character varying, 'confirmacion'::character varying])::text[])))";
+    $cu17['restricciones']['citas_historial.citas_historial_reprogramacion_valida']['definicion']="CHECK (((((tipo)::text = 'reprogramacion'::text) AND (inicio_anterior <> inicio_nuevo) AND ((estado_anterior)::text = 'programada'::text) AND ((estado_nuevo)::text = 'programada'::text)) OR (((tipo)::text = 'cancelacion'::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = 'programada'::text) AND ((estado_nuevo)::text = 'cancelada'::text)) OR (((tipo)::text = 'confirmacion'::text) AND (inicio_anterior = inicio_nuevo) AND ((estado_anterior)::text = 'programada'::text) AND ((estado_nuevo)::text = 'confirmada'::text))))";
+    $cu16=$cu17;
     // Aislar 006 de una base que ya puede tener 007; solo metadatos en memoria.
     $cu16['restricciones']['citas.citas_estado_valido']['definicion']="CHECK (((estado)::text = ANY ((ARRAY['programada'::character varying, 'cancelada'::character varying, 'atendida'::character varying])::text[])))";
     $cu16['restricciones']['citas.citas_medico_sin_superposicion']['definicion']="EXCLUDE USING gist (medico_id WITH =, tsrange((fecha_hora_inicio AT TIME ZONE 'UTC'::text), ((fecha_hora_inicio AT TIME ZONE 'UTC'::text) + make_interval(mins => (duracion_minutos)::integer)), '[)'::text) WITH &&) WHERE (((estado)::text = 'programada'::text))";
@@ -47,7 +54,23 @@ try{
     $verificar($real,true,'Ciclo 2 aislado: acepta nueve tablas/doce FK con historial completo');
     $verificar($cu15,true,'CU15 aislado: acepta 005 sin columna ni restricciones de cancelacion');
     if(isset($real['columnas']['citas_historial.motivo_cancelacion'])){$verificar($cu16,true,'CU16 aislado: acepta 006 sin confirmaciones');}
+    if(str_contains($real['restricciones']['citas.citas_estado_valido']['definicion'],'confirmada')){$verificar($cu17,true,'CU17 aislado: acepta 007 sin asistencia');}
     $casos=[];
+    if(str_contains($real['restricciones']['citas.citas_estado_valido']['definicion'],'presente')){
+        $x=$real;$x['restricciones']['citas.citas_medico_sin_superposicion']=$cu17['restricciones']['citas.citas_medico_sin_superposicion'];$casos['rechaza 008 con GiST que libera presencia o atención']=$x;
+        foreach(['citas_historial_tipo_valido','citas_historial_reprogramacion_valida'] as $nombre){
+            $x=$real;$x['restricciones']['citas_historial.'.$nombre]=$cu17['restricciones']['citas_historial.'.$nombre];$casos['rechaza 008 con CHECK 007: '.$nombre]=$x;
+        }
+        $x=$real;unset($x['restricciones']['citas_historial.citas_historial_asistencia_tiempo_valido']);$casos['rechaza 008 sin limite temporal']=$x;
+        $x=$real;$x['restricciones']['citas_historial.citas_historial_asistencia_tiempo_valido']['definicion']='CHECK (true)';$casos['rechaza limite temporal debilitado']=$x;
+        $x=$real;$x['restricciones']['citas_historial.citas_historial_asistencia_tiempo_valido']['valida']=false;$casos['rechaza limite temporal no validado']=$x;
+        $x=$real;unset($x['indices_historial']['citas_historial_asistencia_unica_idx']);$casos['rechaza 008 sin indice unico de eventos']=$x;
+        foreach(['unico'=>false,'valido'=>false,'listo'=>false,'predicado'=>null,'columnas'=>['tipo','cita_id'],'definicion'=>'CREATE INDEX incorrecto'] as $key=>$value){
+            $x=$real;$x['indices_historial']['citas_historial_asistencia_unica_idx'][$key]=$value;$casos['rechaza indice de asistencia alterado: '.$key]=$x;
+        }
+        $x=$cu17;$x['indices_historial']['citas_historial_asistencia_unica_idx']=$real['indices_historial']['citas_historial_asistencia_unica_idx'];$casos['rechaza 007 con indice parcial de 008']=$x;
+        $x=$cu17;$x['restricciones']['citas_historial.citas_historial_asistencia_tiempo_valido']=$real['restricciones']['citas_historial.citas_historial_asistencia_tiempo_valido'];$casos['rechaza 007 con CHECK parcial de 008']=$x;
+    }
     if(str_contains($real['restricciones']['citas.citas_estado_valido']['definicion'],'confirmada')){
         $x=$real;$x['restricciones']['citas.citas_medico_sin_superposicion']=$cu16['restricciones']['citas.citas_medico_sin_superposicion'];$casos['rechaza 007 con GiST que libera confirmadas']=$x;
         $x=$real;$x['restricciones']['citas.citas_estado_valido']=$cu16['restricciones']['citas.citas_estado_valido'];$casos['rechaza historial 007 con estados anteriores']=$x;

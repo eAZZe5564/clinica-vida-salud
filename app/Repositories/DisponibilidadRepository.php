@@ -35,9 +35,9 @@ final class DisponibilidadRepository
     public function ocupaciones(int $medico,string $desde,string $hasta,?int $excluirCita=null): array
     {
         // [inicio,fin): incluye reservas que comenzaron antes del día consultado.
-        // Ambos estados mantienen reserva, igual que el predicado GiST de 007.
+        // Se conserva también el intervalo histórico de atención/inasistencia (008).
         $q=$this->pdo->prepare("SELECT fecha_hora_inicio,duracion_minutos FROM citas
-            WHERE medico_id=:medico AND estado IN ('programada','confirmada')
+            WHERE medico_id=:medico AND estado IN ('programada','confirmada','presente','atendida','inasistencia')
             AND fecha_hora_inicio<CAST(:hasta AS timestamptz)
             AND fecha_hora_inicio+make_interval(mins=>duracion_minutos)>CAST(:desde AS timestamptz)
             " . ($excluirCita===null?'':'AND id<>:excluir') . " ORDER BY fecha_hora_inicio");

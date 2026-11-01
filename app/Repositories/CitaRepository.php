@@ -70,7 +70,7 @@ final class CitaRepository
     {
         $q=$this->pdo->prepare('SELECT c.id,c.paciente_id,c.medico_id,c.especialidad_id,c.estado,c.fecha_hora_inicio,c.duracion_minutos,
             p.nombres AS paciente_nombres,p.apellidos AS paciente_apellidos,
-            m.nombres AS medico_nombres,m.apellidos AS medico_apellidos,e.nombre AS especialidad
+            m.nombres AS medico_nombres,m.apellidos AS medico_apellidos,m.usuario_id AS medico_usuario_id,e.nombre AS especialidad
             FROM citas c JOIN pacientes p ON p.id=c.paciente_id JOIN medicos m ON m.id=c.medico_id
             LEFT JOIN especialidades e ON e.id=c.especialidad_id WHERE c.id=:id' . ($bloquear?' FOR UPDATE OF c':''));
         $q->execute(['id'=>$id]);return $q->fetch()?:null;
@@ -109,6 +109,27 @@ final class CitaRepository
         $q=$this->pdo->prepare("INSERT INTO citas_historial(cita_id,tipo,inicio_anterior,inicio_nuevo,estado_anterior,estado_nuevo,usuario_id,motivo_cancelacion)
             VALUES (:id,'confirmacion',:anterior,:nuevo,'programada','confirmada',:actor,NULL)");
         $q->execute(['id'=>$cita['id'],'anterior'=>$cita['fecha_hora_inicio'],'nuevo'=>$cita['fecha_hora_inicio'],'actor'=>$actor]);
+    }
+    public function actualizarAsistencia(int $id,string $anterior,string $nuevo): void
+    {
+        $q=$this->pdo->prepare('UPDATE citas SET estado=:nuevo WHERE id=:id AND estado=:anterior');
+        $q->execute(['id'=>$id,'anterior'=>$anterior,'nuevo'=>$nuevo]);
+        if($q->rowCount()!==1){throw new \App\Services\CitaException(['estado'=>'La cita cambió. Vuelve a consultarla.'],409);}
+    }
+    public function registrarAsistencia(array $cita,string $tipo,string $nuevo,int $actor,string $momento): void
+    {
+        $q=$this->pdo->prepare('INSERT INTO citas_historial(cita_id,tipo,inicio_anterior,inicio_nuevo,estado_anterior,estado_nuevo,usuario_id,cambiado_en,motivo_cancelacion)
+            VALUES (:id,:tipo,:anterior,:inicio,:estado,:nuevo,:actor,:momento,NULL)');
+        $q->execute(['id'=>$cita['id'],'tipo'=>$tipo,'anterior'=>$cita['fecha_hora_inicio'],'inicio'=>$cita['fecha_hora_inicio'],
+            'estado'=>$cita['estado'],'nuevo'=>$nuevo,'actor'=>$actor,'momento'=>$momento]);
+    }
+    /** El controlador exige antes acceso CU14 a esta misma cita. Nunca incluye motivo clínico. */
+    public function historialAdministrativo(int $id,bool $completo): array
+    {
+        $q=$this->pdo->prepare('SELECT h.tipo,h.estado_anterior,h.estado_nuevo,h.inicio_anterior,h.inicio_nuevo,h.cambiado_en'.
+            ($completo?',u.correo AS responsable':'').' FROM citas_historial h'.($completo?' JOIN usuarios u ON u.id=h.usuario_id':'').
+            ' WHERE h.cita_id=:id'.($completo?'':" AND h.tipo IN ('llegada','atencion','inasistencia')").' ORDER BY h.id');
+        $q->execute(['id'=>$id]);return $q->fetchAll();
     }
     public function registrarCancelacion(array $cita,int $actor,?string $motivo): void
     {

@@ -278,6 +278,17 @@ button:disabled { cursor: default; opacity: .55; }
 .button-danger:hover { background: #86232b; }
 .cancelar-panel { padding: 28px; margin-bottom: 22px; }
 .confirmar-panel { padding: 28px; margin-bottom: 22px; }
+.asistencia-panel { padding: 28px; margin: 22px 0; }
+.asistencia-panel .detail-grid dd { overflow-wrap: anywhere; }
+.asistencia-historial { min-width: 680px; }
+.asistencia-historial td { overflow-wrap: anywhere; }
+.appointment-presente { background: #e4efff; color: #173d69; }
+.appointment-inasistencia { background: #fff1dc; color: #75471a; }
+@media (max-width:760px) {
+    .asistencia-panel { padding: 20px; }
+    .asistencia-historial { min-width: 0; }
+    .asistencia-historial td { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+}
 .confirmar-panel .detail-grid dd { overflow-wrap: anywhere; }
 .appointment-confirmada { background: #e4f4ee; color: #185641; }
 .patient-detail .form-actions { flex-wrap: wrap; }

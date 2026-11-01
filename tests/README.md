@@ -1,5 +1,21 @@
 # Pruebas
 
+CU18 (solo `clinica_vida_salud_dev`, requiere 008 ya autorizada/aplicada):
+`php tests/asistencia_integration.php`, `php tests/http_asistencia.php`,
+`php tests/asistencia_concurrency.php`, `php tests/asistencia_browser.php`.
+No volver a aplicar migraciones para ejecutarlas. Comprueban llegada distinta de
+atención, no-show desde el fin del intervalo, roles/vínculo, historial atómico,
+reintentos, GiST y coordinación con CU11–CU17. Integración y carreras inyectan un
+reloj de negocio únicamente por constructor; HTTP/Edge usan el reloj real de
+PostgreSQL para llegada/atención y rechazo de inasistencia prematura. La
+inasistencia válida se comprueba con fixtures y reloj simulado, no por HTTP tras
+una espera de 30 minutos. No se desactivan restricciones ni triggers.
+Capturas ficticias en `tests/artifacts/cu18/`, ignoradas. `php scripts/inspeccionar-cu18-local.php`
+y `php scripts/verificar-cu15-local.php` verifican READ ONLY; el contrato compartido
+distingue 001–004/005/006/007/008 y rechaza instalaciones parciales.
+Resultados e inventario actual: [PRUEBAS_CU18.md](../docs/ciclo2/PRUEBAS_CU18.md).
+Las cifras de las secciones siguientes son históricas de cada entrega.
+
 CU17 (solo `clinica_vida_salud_dev`, requiere 007 autorizada y aplicada):
 `php tests/confirmacion_integration.php`, `php tests/http_confirmacion.php`,
 `php tests/confirmacion_concurrency.php`, `php tests/confirmacion_browser.php`.
@@ -86,7 +102,7 @@ Horarios: validaciones sin conexión; integración con rollback; HTTP con limpie
 
 Los servidores de pruebas se lanzan mediante argumentos de proceso directo para que proc_terminate cierre PHP en Windows; http_auth_integration.php se ajustó a este mecanismo sin cambiar sus aserciones ni la aplicación.
 
-Disponibilidad: integración con transacción revertida y reloj inyectado para comprobar hoy/horas pasadas sin alterar el reloj del sistema; HTTP con consultas reales y listas exactas de turnos. Se usan HorariosFixture y HttpCatalogo existentes. Las reservas HTTP son ficticias y temporales, eliminadas en finally por sus IDs de fixture; no queda ninguna cita permanente. No modifica esquema ni requiere migración adicional. La política de ocupación usa programada, igual que la exclusión GiST; se prueban cancelada y atendida como no activas.
+Disponibilidad: integración con transacción revertida y reloj inyectado para comprobar hoy/horas pasadas sin alterar el reloj del sistema; HTTP con consultas reales y listas exactas de turnos. Se usan HorariosFixture y HttpCatalogo existentes. Las reservas HTTP son ficticias y temporales, eliminadas en finally por sus IDs de fixture; no queda ninguna cita permanente. No modifica esquema. Tras 008 la política compartida con GiST conserva programada, confirmada, presente, atendida e inasistencia; cancelada libera. La expectativa histórica de atendida se actualizó a ocupada, conservando el número de aserciones.
 
 Reservas CU13 backend: requiere migración 004 previamente autorizada/aplicada. CitasPrueba compone los fixtures/servicios; integración revierte sus registros. HTTP y concurrencia limpian exclusivamente los IDs ficticios creados. Concurrencia ejecuta tres carreras reales con dos procesos/sesiones: doble reserva con 23P01 comprobado, CU11 desactiva antes y CU11 intenta desactivar después de una reserva. No se crean bases ni se tocan datos previos. Las secuencias pueden avanzar tras rollback.
 
