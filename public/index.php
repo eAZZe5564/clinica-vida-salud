@@ -14,6 +14,12 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if(in_array($path,['/agenda','/agenda/diaria','/agenda/semanal'],true)){
+        $agenda=new \App\Controllers\AgendaController();
+        if($method!=='GET'){http_response_code(405);header('Allow: GET');require dirname(__DIR__).'/app/Views/errors/405.php';}
+        else{$agenda->mostrar($path==='/agenda/semanal'?'semanal':'diaria');}
+        exit;
+    }
     if (preg_match('#^/citas/([1-9][0-9]*)/(llegada|atencion|inasistencia)$#',$path,$asistencia)===1) {
         $id=filter_var($asistencia[1],FILTER_VALIDATE_INT);
         if($id===false){http_response_code(404);require dirname(__DIR__).'/app/Views/errors/404.php';}

@@ -124,3 +124,26 @@ relectura de permiso/estado/hora/revisión → UPDATE estado + INSERT historial 
 COMMIT → 303 al detalle. Cualquier error revierte ambas escrituras. El reloj por
 defecto es PostgreSQL, no una entrada del navegador. Administrador/recepción
 registran llegada o inasistencia; únicamente el médico propio finaliza.
+
+## CU19
+
+| Archivo | Responsabilidad / UML |
+|---|---|
+| `app/Controllers/AgendaController.php` | Autenticación/roles heredados, vistas GET, errores 403/404/422 y presentación |
+| `app/Services/AgendaService.php` | Alcance por vínculo de médico, validación, límites locales/UTC, semana lunes–domingo, filtros, franjas y navegación |
+| `app/Repositories/AgendaRepository.php` | Tres SELECT preparados por profesional: especialidades, horarios activos y citas acotadas al rango; sin datos clínicos |
+| `app/Repositories/HorarioRepository.php` (reutilizado, sin editar) | Vínculo de usuario médico y opciones permitidas conforme al alcance de CU14 |
+| `app/Views/agenda/index.php`, `error.php` | Vista diaria/semanal, errores controlados, estados con texto, huecos/fuera de atención y enlaces CU14 |
+| `public/assets/css/agenda.css` | Siete columnas de escritorio, dos de tablet y una de móvil; clases exclusivas de agenda |
+| `public/index.php` | Rutas GET `/agenda`, `/agenda/diaria`, `/agenda/semanal`; demás métodos autorizados: 405 |
+| `app/Views/layout.php`, `dashboard.php` | Acceso por roles a agenda, CSS solo en sus pantallas; no cambia autenticación ni CSRF |
+| `tests/AgendaPrueba.php` | Fixtures locales con estados CU13–CU18 reales, huellas y PDO vigilado de solo SELECT |
+| `tests/agenda_integration.php` | READ ONLY, permisos, filtros, fechas/zonas/límites, consultas agrupadas y reflejo de transiciones existentes |
+| `tests/http_agenda.php` | Rutas reales, IDOR, privacidad/XSS, formularios GET, filtros y conservación de las nueve tablas tras login |
+| `tests/agenda_browser.php`, `tests/citas_browser.mjs` | Edge real escritorio/tablet/celular, navegación, filtros, CU14 y agenda médica propia |
+
+No hay nuevas entidades ni migraciones. AgendaService proyecta Cita, Medico,
+Especialidad y HorarioAtencion existentes. CitasHistorial no se modifica ni se
+consulta para construir la agenda. Secuencia/UML y reglas: [CU19.md](CU19.md).
+Los períodos sin cita describen la agenda; el cálculo de disponibilidad para
+reservar continúa exclusivamente en CU12/CU13.

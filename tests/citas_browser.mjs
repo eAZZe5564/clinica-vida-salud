@@ -51,7 +51,58 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.asistencia) {
+    if (data.agenda) {
+        const directory = resolve('tests/artifacts/cu19'); await mkdir(directory, { recursive: true });
+        const captures = [];
+        const screenshot = async (name) => {
+            const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const path = join(directory, name); await writeFile(path, Buffer.from(shot.data, 'base64')); captures.push(path);
+        };
+        const url = `${data.base}/agenda/diaria?fecha=${data.fecha}&medico_id=${data.medico}`;
+        const sinDesbordamiento = 'document.documentElement.scrollWidth<=innerWidth+1&&[...document.querySelectorAll(".agenda-dia,.agenda-evento")].every(el=>el.getBoundingClientRect().right<=innerWidth+1)';
+        await navigation(() => send('Page.navigate', { url }));
+        check(await evaluate('document.querySelectorAll("[data-agenda-cita]").length===6&&document.body.innerText.includes("Sin cita registrada")&&document.body.innerText.includes("Fuera de atención")'), 'Diaria con citas, huecos y fuera de atención');
+        check(await evaluate(sinDesbordamiento), 'Diaria escritorio sin desbordamiento');
+        check(await evaluate('document.querySelector("[data-agenda-filtros]").method==="get"&&document.querySelectorAll(".agenda-dias form").length===0'), 'Calendario sin operaciones de escritura');
+        await screenshot('diaria-escritorio.png');
+        await navigation(() => evaluate('document.querySelector("[data-agenda-vista=semanal]").click()'));
+        check(await evaluate('document.querySelectorAll("[data-agenda-dia]").length===7&&getComputedStyle(document.querySelector(".agenda-semanal")).gridTemplateColumns.split(" ").length===7'), 'Semana escritorio en siete columnas');
+        check(await evaluate(`document.querySelector('[data-agenda-dia]').dataset.agendaDia===${JSON.stringify(data.fecha)}&&new URL(location.href).searchParams.get('medico_id')===${JSON.stringify(String(data.medico))}`), 'Semana inicia lunes y mantiene profesional');
+        check(await evaluate(sinDesbordamiento), 'Semana escritorio sin desbordamiento');
+        await screenshot('semanal-escritorio.png');
+        const semana = await evaluate('location.href');
+        await navigation(() => evaluate('document.querySelector("[data-agenda-siguiente]").click()'));
+        check(await evaluate('document.querySelectorAll("[data-agenda-cita]").length===0&&document.querySelectorAll("[data-agenda-dia]").length===7'), 'Semana siguiente vacía controlada');
+        await navigation(() => evaluate('document.querySelector("[data-agenda-anterior]").click()'));
+        check(await evaluate('document.querySelectorAll("[data-agenda-cita]").length===6'), 'Semana anterior recupera citas');
+        check(await evaluate(`new URL(document.querySelector('[data-agenda-hoy]').href).searchParams.get('fecha')===${JSON.stringify(data.hoy)}`), 'Acceso a semana actual con fecha local');
+        await navigation(() => evaluate('document.querySelector("#agenda-estado").value="todas";document.querySelector("[data-agenda-filtros]").requestSubmit()'));
+        check(await evaluate(`!!document.querySelector('[data-agenda-cita="${data.cancelada}"]')&&document.body.innerText.includes('no reserva el horario')`), 'Cancelada histórica visible con etiqueta');
+        await send('Emulation.setDeviceMetricsOverride', { width: 900, height: 1000, deviceScaleFactor: 1, mobile: false });
+        check(await evaluate('getComputedStyle(document.querySelector(".agenda-semanal")).gridTemplateColumns.split(" ").length===2'), 'Tablet agrupa días en dos columnas');
+        check(await evaluate(sinDesbordamiento), 'Tablet sin desbordamiento');
+        await screenshot('semanal-tablet.png');
+        await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+        check(await evaluate('getComputedStyle(document.querySelector(".agenda-semanal")).gridTemplateColumns.split(" ").length===1'), 'Semana móvil agrupada en una columna');
+        check(await evaluate(sinDesbordamiento), 'Semana móvil sin desplazamiento horizontal');
+        await screenshot('semanal-movil.png');
+        await navigation(() => evaluate('document.querySelector("[data-agenda-vista=diaria]").click()'));
+        check(await evaluate(`location.pathname==='/agenda/diaria'&&new URL(location.href).searchParams.get('estado')==='todas'&&document.querySelectorAll('[data-agenda-cita]').length===7`), 'Alternancia mantiene fecha, médico y filtro');
+        check(await evaluate(sinDesbordamiento), 'Diaria móvil sin desbordamiento');
+        await screenshot('diaria-movil.png');
+        await navigation(() => evaluate(`document.querySelector('a[href="/citas/${data.cita}"]').click()`));
+        check(await evaluate('document.body.innerText.includes("Detalle de cita")'), 'Enlace autorizado a CU14');
+        await navigation(() => send('Page.navigate', { url: `${data.base}/dashboard` }));
+        await navigation(() => evaluate('document.querySelector("form[action=\\"/logout\\"]").requestSubmit()'));
+        await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
+        await navigation(() => evaluate(`document.querySelector('[name=correo]').value=${JSON.stringify(data.medicoCorreo)};document.querySelector('[name=contrasena]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit()`));
+        await navigation(() => send('Page.navigate', { url: `${data.base}/agenda/semanal?fecha=${data.fecha}` }));
+        check(await evaluate('!document.querySelector("#agenda-medico")&&document.querySelectorAll("[data-agenda-cita]").length===6'), 'Médico consulta únicamente su agenda sin selector');
+        await screenshot('medico-movil.png');
+        await navigation(() => send('Page.navigate', { url: `${data.base}/agenda/semanal?fecha=${data.fecha}&medico_id=${data.otro}` }));
+        check(await evaluate('!document.querySelector("[data-agenda-cita]")&&document.body.innerText.includes("403")'), 'Médico no obtiene agenda ajena por URL');
+        result = { assertions, captures };
+    } else if (data.asistencia) {
         const directory = resolve('tests/artifacts/cu18'); await mkdir(directory, { recursive: true });
         const captures = [];
         const screenshot = async (name) => {

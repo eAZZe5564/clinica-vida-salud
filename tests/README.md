@@ -1,5 +1,19 @@
 # Pruebas
 
+CU19 (solo `clinica_vida_salud_dev`, esquema 001–008 ya instalado, sin migración nueva):
+`php tests/agenda_integration.php`, `php tests/http_agenda.php`,
+`php tests/agenda_browser.php`. Integración comprueba SELECT reales en transacción
+READ ONLY, consultas agrupadas, permisos, filtros, bordes locales de día/semana,
+cambios CU13–CU18 y huellas de las nueve tablas. HTTP toma su huella después de
+login (autenticación registra acceso) y demuestra que consultar o intentar métodos
+de escritura desde CU19 no altera ninguna tabla. Edge usa un perfil temporal y
+credenciales ficticias por stdin; captura escritorio 1440px, tablet 900px y móvil
+390px en `tests/artifacts/cu19/`, ignorado. Su comparación de dominio excluye
+usuarios porque cambia de cuenta durante el recorrido; el login existente registra
+último acceso. Todos los fixtures se retiran exclusivamente por sus propios IDs.
+El informe actual, comandos de regresión CU01–CU18 e inventario están en
+[PRUEBAS_CU19.md](../docs/ciclo2/PRUEBAS_CU19.md). No ejecutar pruebas contra Render.
+
 CU18 (solo `clinica_vida_salud_dev`, requiere 008 ya autorizada/aplicada):
 `php tests/asistencia_integration.php`, `php tests/http_asistencia.php`,
 `php tests/asistencia_concurrency.php`, `php tests/asistencia_browser.php`.
