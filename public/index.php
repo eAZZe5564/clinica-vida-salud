@@ -14,6 +14,14 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if($path==='/historial-citas'||preg_match('#^/pacientes/([1-9][0-9]*)/historial-citas(?:/([1-9][0-9]*)/eventos)?$#',$path,$historial)===1){
+        $controlador=new \App\Controllers\HistorialPacientesController();
+        $pacienteId=isset($historial[1])?filter_var($historial[1],FILTER_VALIDATE_INT):null;
+        $citaId=isset($historial[2])?filter_var($historial[2],FILTER_VALIDATE_INT):null;
+        if($pacienteId===false||$citaId===false){http_response_code(404);require dirname(__DIR__).'/app/Views/errors/404.php';}
+        elseif($method!=='GET'){http_response_code(405);header('Allow: GET');require dirname(__DIR__).'/app/Views/errors/405.php';}
+        else{$controlador->mostrar($pacienteId,$citaId);}exit;
+    }
     if(in_array($path,['/agenda','/agenda/diaria','/agenda/semanal'],true)){
         $agenda=new \App\Controllers\AgendaController();
         if($method!=='GET'){http_response_code(405);header('Allow: GET');require dirname(__DIR__).'/app/Views/errors/405.php';}

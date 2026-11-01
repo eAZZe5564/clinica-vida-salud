@@ -1,5 +1,19 @@
 # Pruebas
 
+CU20 (solo `clinica_vida_salud_dev`, requiere esquema 001–008 ya instalado, sin
+migraciones nuevas): `php tests/historial_paciente_integration.php`,
+`php tests/http_historial_paciente.php`, `php tests/historial_paciente_browser.php`.
+Integración ejecuta el historial/eventos en READ ONLY con PDO vigilado y compara
+las nueve tablas; crea únicamente fixtures antes de esas lecturas. HTTP compara
+huellas tras login, porque autenticar registra acceso. Edge cambia de cuenta y
+compara las otras ocho tablas, sin confundir esa escritura de autenticación con
+CU20. Reutilizan fixtures CU13–CU19, conservan sus IDs y limpian solo esos registros.
+Se prueba una ficha de paciente vinculada que sigue recibiendo 403: no existe aún
+lectura personal CU14 y no se implementa un portal o autogestión CU25.
+Capturas ficticias ignoradas en `tests/artifacts/cu20/`, perfil Edge temporal y
+credenciales ficticias por stdin. Diseño, límites, resultados actuales e inventario:
+[PRUEBAS_CU20.md](../docs/ciclo2/PRUEBAS_CU20.md).
+
 CU19 (solo `clinica_vida_salud_dev`, esquema 001–008 ya instalado, sin migración nueva):
 `php tests/agenda_integration.php`, `php tests/http_agenda.php`,
 `php tests/agenda_browser.php`. Integración comprueba SELECT reales en transacción

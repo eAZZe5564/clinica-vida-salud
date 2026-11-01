@@ -16,6 +16,7 @@ $nombresRoles = [
 </section>
 
 <?php if (in_array($usuario['rol'], ['administrador','recepcionista','medico'], true)): ?>
+    <section class="panel dashboard-card patient-dashboard"><h2>Historial de citas por paciente</h2><p>Consulta citas anteriores, futuras y sus eventos administrativos autorizados.</p><a class="text-link" href="/historial-citas">Buscar historial de citas</a></section>
     <section class="panel dashboard-card patient-dashboard"><h2>Agenda médica</h2><p>Revisa horarios y citas en una vista diaria o semanal, sin modificar reservas.</p><a class="text-link" href="/agenda">Consultar agenda</a></section>
     <section class="panel dashboard-card patient-dashboard"><h2><?= $usuario['rol']==='medico'?'Mis citas':'Citas médicas' ?></h2><p>Consulta las reservas registradas y filtra por fecha, especialidad o estado.</p><a class="text-link" href="/citas">Consultar citas</a></section>
     <section class="panel dashboard-card patient-dashboard"><h2>Horarios y disponibilidad</h2><p><?= $usuario['rol']==='medico' ? 'Consulta los horarios y turnos libres de tu registro médico vinculado.' : 'Consulta los tramos semanales de atención y los turnos libres de los médicos.' ?></p><a class="text-link" href="/horarios">Consultar horarios</a> · <a class="text-link" href="/disponibilidad">Consultar disponibilidad</a></section>

@@ -11,7 +11,7 @@
         <tr><td data-label="Código"><?= e(\App\Models\Paciente::codigo((int) $fila['id'])) ?></td><td data-label="CI"><?= e($fila['documento_identidad']) ?></td>
         <td data-label="Paciente"><?= e($fila['apellidos'] . ', ' . $fila['nombres']) ?></td>
         <td data-label="Estado"><span class="status-pill <?= $fila['activo'] ? 'status-active' : 'status-inactive' ?>"><?= $fila['activo'] ? 'Activo' : 'Inactivo' ?></span></td>
-        <td data-label="Acciones" class="row-actions"><a class="text-link" href="/pacientes/<?= (int) $fila['id'] ?>">Ver detalle</a><a class="text-link" href="/pacientes/<?= (int) $fila['id'] ?>/editar">Editar</a></td></tr>
+        <td data-label="Acciones" class="row-actions"><a class="text-link" href="/pacientes/<?= (int) $fila['id'] ?>">Ver detalle</a><a class="text-link" href="/pacientes/<?= (int) $fila['id'] ?>/historial-citas">Ver historial de citas</a><a class="text-link" href="/pacientes/<?= (int) $fila['id'] ?>/editar">Editar</a></td></tr>
     <?php endforeach; ?>
     <?php if (!$resultado['filas']): ?><tr><td colspan="5" class="empty-state">No se encontraron pacientes.</td></tr><?php endif; ?>
     </tbody></table></div>

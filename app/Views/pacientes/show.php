@@ -1,5 +1,6 @@
 <section class="page-heading"><p class="eyebrow"><?= e(\App\Models\Paciente::codigo((int) $paciente['id'])) ?> · CU05</p><h1><?= e($paciente['nombres'] . ' ' . $paciente['apellidos']) ?></h1></section>
 <section class="panel patient-detail">
+    <p><a class="button button-secondary" href="/pacientes/<?= (int)$paciente['id'] ?>/historial-citas">Ver historial de citas</a></p>
     <dl class="detail-grid">
     <?php foreach (['documento_identidad' => 'CI / Documento', 'fecha_nacimiento' => 'Fecha de nacimiento', 'sexo' => 'Sexo', 'telefono' => 'Teléfono', 'correo_contacto' => 'Correo', 'direccion' => 'Dirección'] as $campo => $etiqueta): ?>
         <div><dt><?= e($etiqueta) ?></dt><dd><?= e((string) ($campo === 'sexo' ? (\App\Services\PacienteService::SEXOS[$paciente[$campo] ?? ''] ?? 'Sin registrar') : ($paciente[$campo] ?? 'Sin registrar'))) ?></dd></div>

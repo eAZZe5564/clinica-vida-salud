@@ -147,3 +147,30 @@ Especialidad y HorarioAtencion existentes. CitasHistorial no se modifica ni se
 consulta para construir la agenda. Secuencia/UML y reglas: [CU19.md](CU19.md).
 Los períodos sin cita describen la agenda; el cálculo de disponibilidad para
 reservar continúa exclusivamente en CU12/CU13.
+
+## CU20
+
+| Archivo | Responsabilidad / UML |
+|---|---|
+| `app/Controllers/HistorialPacientesController.php` | Sesión/roles, GET de búsqueda, historial y eventos; errores controlados |
+| `app/Services/HistorialPacienteService.php` | Paciente accesible, validación CU14, fechas locales/UTC, presentación administrativa y permisos de responsable |
+| `app/Repositories/HistorialPacienteRepository.php` | SELECT de pacientes accesibles, citas/eventos paginados, conteo agrupado por página y catálogos por alcance |
+| `app/Services/ConsultaCitaService.php` (reutilizado, sin editar) | Deriva alcance médico, permisos y validaciones de filtros existentes |
+| `app/Models/BusquedaPaciente.php`, `Paciente.php`, `Cita.php` (reutilizados, sin editar) | Términos de búsqueda, códigos estables y seis estados existentes |
+| `app/Views/historial/buscar.php`, `index.php`, `eventos.php`, `error.php` | Selección mínima, historial único descendente, auditoría cronológica y errores, con escape HTML |
+| `public/assets/css/historial.css` | Filtros adaptables, tabla móvil etiquetada, eventos en tarjetas |
+| `public/index.php` | GET `/historial-citas`, `/pacientes/{id}/historial-citas`, `/pacientes/{id}/historial-citas/{cita}/eventos` |
+| `app/Views/pacientes/index.php`, `show.php` | Enlace CU20 desde CU04–CU06, sin ampliar permisos del CRUD |
+| `app/Views/layout.php`, `dashboard.php` | Acceso administrativo/médico a la consulta; CSS solo en CU20 |
+| `tests/HistorialPacientePrueba.php` | Composición de fixtures CU13–CU19, legado, cuenta de paciente vinculada y reprogramaciones reales |
+| `tests/historial_paciente_integration.php` | READ ONLY, aislamiento, paginación, tipos de evento, identidad única, fechas y consistencia CU19 |
+| `tests/http_historial_paciente.php` | Rutas reales, métodos, IDOR de paciente/cita/médico, XSS, mínimos datos y huellas posteriores al login |
+| `tests/historial_paciente_browser.php`, `tests/citas_browser.mjs` | Edge real escritorio/tablet/celular, CU04, filtros, páginas, eventos y médico propio |
+
+No hay entidad persistente ni auditoría nueva: Paciente 1:N Cita 1:N CitasHistorial;
+Cita conserva sus relaciones con Medico/Especialidad; Usuario solo aporta el
+responsable autorizado para administrador. No se implementa historia clínica.
+Secuencia: actor → controlador → política CU14 → servicio CU20 → repositorio →
+SELECT parametrizados con paciente/alcance/filtros/LIMIT → presentación.
+CU14 sigue autorizando cualquier enlace de detalle. El rol Paciente permanece
+denegado; propuesta de integración futura y reglas RN-H01–20: [CU20.md](CU20.md).

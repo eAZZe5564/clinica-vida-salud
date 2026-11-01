@@ -1,0 +1,31 @@
+/* CU20: consulta administrativa con tablas adaptables y eventos paginados. */
+.historial-panel { padding: 24px; margin: 20px 0; }
+.historial-panel p { line-height: 1.6; }
+.historial-accesos { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 18px 0; }
+.historial-filtros { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: end; gap: 18px; }
+.historial-filtros .field-group { min-width: 0; margin: 0; }
+.historial-filtros input,.historial-filtros select { width: 100%; min-width: 0; min-height: 46px; padding: 10px; background: white; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.historial-enlaces { display: flex; flex-wrap: wrap; gap: 12px; }
+.historial-pacientes,.historial-eventos { list-style: none; margin: 0; padding: 0; }
+.historial-pacientes li { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.historial-panel td,.historial-panel dd { overflow-wrap: anywhere; white-space: normal; }
+.historial-panel .status-pill { white-space: nowrap; width: max-content; justify-self: end; }
+.historial-panel td:first-child { white-space: nowrap; }
+.historial-panel td { font-size: .85rem; }
+@media(max-width:1000px) {
+    .historial-filtros { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .historial-panel .table-scroll { overflow: visible; }
+    .historial-panel table,.historial-panel tbody,.historial-panel tr,.historial-panel td { display: block; width: 100%; }
+    .historial-panel thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+    .historial-panel tbody tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .historial-panel td { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.6fr); padding: 8px; border: 0; text-align: right; gap: 14px; }
+    .historial-panel td::before { content: attr(data-label); color: var(--muted); font-size: .76rem; font-weight: 700; text-align: left; }
+    .historial-enlaces { justify-content: flex-end; }
+}
+@media(max-width:760px) {
+    .historial-panel { padding: 18px; }
+    .historial-filtros { grid-template-columns: minmax(0,1fr); }
+    .historial-pacientes li { align-items: flex-start; flex-direction: column; }
+    .historial-panel td { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.6fr); }
+    .historial-enlaces { justify-content: flex-end; }
+}

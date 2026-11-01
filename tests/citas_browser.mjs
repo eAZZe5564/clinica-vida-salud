@@ -51,7 +51,67 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.agenda) {
+    if (data.historialPaciente) {
+        const directory = resolve('tests/artifacts/cu20'); await mkdir(directory, { recursive: true });
+        const captures = [];
+        const screenshot = async (name) => {
+            const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const path = join(directory, name); await writeFile(path, Buffer.from(shot.data, 'base64')); captures.push(path);
+        };
+        const ruta = `/pacientes/${data.paciente}/historial-citas`;
+        const eventos = `${ruta}/${data.cita}/eventos`;
+        const sinDesbordamiento = 'document.documentElement.scrollWidth<=innerWidth+1&&[...document.querySelectorAll(".historial-panel,.historial-panel td")].every(el=>el.getBoundingClientRect().right<=innerWidth+1)';
+        await navigation(() => send('Page.navigate', { url: `${data.base}/pacientes/${data.paciente}` }));
+        check(await evaluate(`!!document.querySelector('a[href="${ruta}"]')`), 'Enlace CU20 desde detalle de paciente');
+        await navigation(() => evaluate(`document.querySelector('a[href="${ruta}"]').click()`));
+        check(await evaluate('document.querySelectorAll("[data-historial-cita]").length===20&&document.body.innerText.includes("41 citas visibles")'), 'Historial principal paginado');
+        check(await evaluate('document.querySelector("[data-historial-filtros]").method==="get"&&!document.body.innerText.includes("DIRECCION_PRIVADA_CU19")'), 'Consulta GET sin contactos privados');
+        check(await evaluate(sinDesbordamiento), 'Escritorio sin desbordamiento');
+        await screenshot('historial-escritorio.png');
+        await navigation(() => evaluate('document.querySelector("[data-historial-siguiente]").click()'));
+        check(await evaluate('document.body.innerText.includes("Página 2 de 3")&&document.querySelectorAll("[data-historial-cita]").length===20'), 'Segunda página de citas');
+        await navigation(() => evaluate('document.querySelector("[data-historial-anterior]").click()'));
+        await navigation(() => evaluate(`document.querySelector('[data-historial-cita="${data.cita}"] a[href$="/eventos"]').click()`));
+        check(await evaluate('document.querySelectorAll("[data-historial-evento]").length===20&&document.body.innerText.includes("Responsable")'), 'Eventos ordenados con responsable para administrador');
+        await navigation(() => evaluate('document.querySelector("[data-eventos-siguiente]").click()'));
+        check(await evaluate('document.querySelectorAll("[data-historial-evento]").length===3&&document.body.innerText.includes("Página 2 de 2")'), 'Paginación independiente de eventos');
+        await screenshot('eventos-escritorio.png');
+        await send('Emulation.setDeviceMetricsOverride', { width: 900, height: 1000, deviceScaleFactor: 1, mobile: false });
+        check(await evaluate(sinDesbordamiento), 'Eventos en tablet sin desbordamiento');
+        await screenshot('eventos-tablet.png');
+        await navigation(() => send('Page.navigate', { url: `${data.base}${ruta}?estado=atendida` }));
+        check(await evaluate(sinDesbordamiento), 'Historial principal en tablet sin desbordamiento');
+        await screenshot('historial-tablet.png');
+        await navigation(() => send('Page.navigate', { url: `${data.base}${eventos}?pagina=2` }));
+        await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+        check(await evaluate(sinDesbordamiento), 'Eventos móviles sin desbordamiento');
+        await screenshot('eventos-movil.png');
+        await navigation(() => send('Page.navigate', { url: `${data.base}${ruta}?estado=atendida` }));
+        check(await evaluate('document.querySelectorAll("[data-historial-cita]").length===2&&document.body.innerText.includes("2 citas visibles")'), 'Filtro de estado conserva atendida histórica sin eventos');
+        check(await evaluate(sinDesbordamiento), 'Historial móvil sin desbordamiento');
+        check(await evaluate('[...document.querySelectorAll(".historial-panel td")].every(el=>!!el.dataset.label)'), 'Celdas móviles etiquetadas');
+        await screenshot('historial-movil.png');
+        await navigation(() => evaluate('document.querySelector("#historial-estado").value="confirmada";document.querySelector("[data-historial-filtros]").requestSubmit()'));
+        check(await evaluate('document.querySelectorAll("[data-historial-cita]").length===1&&document.body.innerText.includes("Confirmada")'), 'Aplicar filtros desde celular');
+        await navigation(() => evaluate('document.querySelector(".historial-accesos a.button").click()'));
+        check(await evaluate('document.querySelectorAll("[data-historial-cita]").length===20'), 'Mostrar todas recupera historial');
+        await navigation(() => evaluate(`document.querySelector('a[href="/citas/${data.cita}"]').click()`));
+        check(await evaluate('document.body.innerText.includes("Detalle de cita")'), 'Detalle CU14 autorizado');
+        await navigation(() => send('Page.navigate', { url: `${data.base}/dashboard` }));
+        await navigation(() => evaluate('document.querySelector("form[action=\\"/logout\\"]").requestSubmit()'));
+        await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
+        await navigation(() => evaluate(`document.querySelector('[name=correo]').value=${JSON.stringify(data.medicoCorreo)};document.querySelector('[name=contrasena]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit()`));
+        await navigation(() => send('Page.navigate', { url: `${data.base}/historial-citas?q=ficticio%20paciente` }));
+        check(await evaluate(`!!document.querySelector('a[href="${ruta}"]')&&!document.querySelector('a[href="/pacientes/${data.pacienteAjeno}/historial-citas"]')`), 'Búsqueda médica solo de sus pacientes');
+        await navigation(() => evaluate(`document.querySelector('a[href="${ruta}"]').click()`));
+        check(await evaluate(`document.body.innerText.includes('40 citas visibles')&&!document.querySelector('#historial-medico')&&!document.querySelector('[data-historial-cita="${data.ajena}"]')`), 'Médico no obtiene citas ajenas ni selector de otro médico');
+        await navigation(() => send('Page.navigate', { url: `${data.base}${eventos}?pagina=2` }));
+        check(await evaluate('document.querySelectorAll("[data-historial-evento]").length===3&&!document.body.innerText.includes("Responsable")'), 'Médico consulta cambios propios sin identidad de responsables');
+        await screenshot('medico-eventos-movil.png');
+        await navigation(() => send('Page.navigate', { url: `${data.base}${ruta}/${data.ajena}/eventos` }));
+        check(await evaluate('document.body.innerText.includes("Página no encontrada")&&!document.querySelector("[data-historial-evento]")'), 'IDOR de cita ajena rechazado en navegador');
+        result = { assertions, captures };
+    } else if (data.agenda) {
         const directory = resolve('tests/artifacts/cu19'); await mkdir(directory, { recursive: true });
         const captures = [];
         const screenshot = async (name) => {
