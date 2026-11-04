@@ -51,7 +51,32 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.historialPaciente) {
+    if (data.reportes) {
+        const directory = resolve('tests/artifacts/cu21'); await mkdir(directory, { recursive: true });
+        const captures = [];
+        const cifra = (estado) => `Number(document.querySelector('[data-reporte-indicador="${estado}"]').textContent)`;
+        check(await evaluate('!!document.querySelector(\'a[href="/reportes/citas"]\')'), 'Reportes integrado al menú y panel');
+        await navigation(() => send('Page.navigate', { url: `${data.base}/reportes/citas?${data.query}` }));
+        check(await evaluate(`${cifra('total')}===8&&${cifra('programada')}===3`), 'Tarjetas con cifras reales');
+        check(await evaluate('document.querySelectorAll("[data-reporte-tabla]").length===4'), 'Cuatro tablas de agregados');
+        check(await evaluate('document.querySelector("[data-reporte-filtros]").method==="get"&&!document.body.innerText.includes("Paciente ficticio")&&!document.body.innerText.includes("Exportar")'), 'Consulta agregada GET sin datos de paciente ni exportaciones');
+        const sumas = `[...document.querySelectorAll('[data-reporte-tabla]:not([data-reporte-tabla="estados"])')].every(t=>[...t.querySelectorAll('tbody tr')].reduce((n,tr)=>n+Number(tr.querySelector('td').textContent),0)===8)`;
+        check(await evaluate(sumas), 'Subtotales de médico, especialidad y día coinciden con tarjetas');
+        for (const [name,width,height] of [['escritorio',1440,1000],['tablet',900,1000],['movil',390,844]]) {
+            await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width===390 });
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1&&[...document.querySelectorAll(".reporte-panel")].every(e=>e.getBoundingClientRect().right<=innerWidth+1)'), `Sin desbordamiento en ${name}`);
+            check(await evaluate('document.querySelector("#reporte-estado").getBoundingClientRect().width>0'), `Filtros visibles en ${name}`);
+            const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+            const path = join(directory, `reportes-${name}.png`); await writeFile(path, Buffer.from(shot.data,'base64')); captures.push(path);
+        }
+        await navigation(() => evaluate('document.querySelector("#reporte-estado").value="cancelada";document.querySelector("[data-reporte-filtros]").requestSubmit()'));
+        check(await evaluate(`${cifra('total')}===1&&${cifra('cancelada')}===1`), 'Filtro de canceladas en móvil');
+        await navigation(() => send('Page.navigate', { url: `${data.base}/reportes/citas?${data.query}&medico_id=${data.sinCitas}` }));
+        check(await evaluate(`${cifra('total')}===0&&document.body.innerText.includes('No hay citas')`), 'Reporte vacío muestra ceros');
+        await navigation(() => send('Page.navigate', { url: `${data.base}/reportes/citas?${data.query}&desde=2026-02-30` }));
+        check(await evaluate('document.body.innerText.includes("Revisa los filtros")&&!document.querySelector("[data-reporte-indicador]")'), 'Filtros inválidos sin cifras parciales');
+        result = { assertions, captures };
+    } else if (data.historialPaciente) {
         const directory = resolve('tests/artifacts/cu20'); await mkdir(directory, { recursive: true });
         const captures = [];
         const screenshot = async (name) => {

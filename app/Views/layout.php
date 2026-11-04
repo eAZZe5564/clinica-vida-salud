@@ -41,6 +41,7 @@ $nombresRoles = [
     <meta name="description" content="Sistema de gestión de Clínica Vida Salud.">
     <title><?= e($titulo . ' | ' . $appName) ?></title>
     <link rel="stylesheet" href="/assets/css/app.css">
+    <?php if(isset($vista)&&str_starts_with($vista,'reportes/')): ?><link rel="stylesheet" href="/assets/css/reportes.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'historial/')): ?><link rel="stylesheet" href="/assets/css/historial.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'agenda/')): ?><link rel="stylesheet" href="/assets/css/agenda.css"><?php endif; ?>
     <script src="/assets/js/app.js" defer></script>
@@ -60,6 +61,7 @@ $nombresRoles = [
             <?php if ($actor && in_array($actor['rol'],['administrador','recepcionista','medico'],true)): ?><a href="/agenda">Agenda médica</a><a href="/horarios">Horarios médicos</a><a href="/disponibilidad">Disponibilidad</a><?php endif; ?>
             <?php if ($actor && in_array($actor['rol'], ['administrador', 'recepcionista'], true)): ?>
                 <a href="/pacientes">Pacientes</a>
+                <a href="/reportes/citas">Reportes de citas</a>
                 <a href="/citas/nueva">Programar cita</a>
                 <a href="/medicos">Médicos</a>
             <?php endif; ?>

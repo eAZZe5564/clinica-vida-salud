@@ -14,6 +14,11 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if($path==='/reportes/citas'){
+        $controlador=new \App\Controllers\ReportesCitasController();
+        if($method!=='GET'){http_response_code(405);header('Allow: GET');require dirname(__DIR__).'/app/Views/errors/405.php';}
+        else{$controlador->mostrar();}exit;
+    }
     if($path==='/historial-citas'||preg_match('#^/pacientes/([1-9][0-9]*)/historial-citas(?:/([1-9][0-9]*)/eventos)?$#',$path,$historial)===1){
         $controlador=new \App\Controllers\HistorialPacientesController();
         $pacienteId=isset($historial[1])?filter_var($historial[1],FILTER_VALIDATE_INT):null;

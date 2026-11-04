@@ -1,5 +1,23 @@
 # Mapa del código — Ciclo 2
 
+## CU21 — Reportes administrativos
+
+| Archivo | Responsabilidad |
+|---|---|
+| `app/Controllers/ReportesCitasController.php` | Sesión/roles, GET y errores seguros |
+| `app/Services/ReporteCitaService.php` | Filtros CU14, límites UTC, permisos, agregados independientes de HTML |
+| `app/Repositories/ReporteCitaRepository.php` | Dos catálogos y un GROUPING SETS sin multiplicación de citas |
+| `app/Views/reportes/citas.php`, `error.php` | Tarjetas, cuatro tablas, filtros y mensajes escapados |
+| `public/assets/css/reportes.css` | Tarjetas y tablas responsivas |
+| `public/index.php`, `app/Views/layout.php`, `dashboard.php` | Ruta, CSS condicional y navegación por roles |
+| `tests/ReportesPrueba.php` | Fixtures ficticios previos, médico multiespecialidad y bordes locales |
+| `tests/reportes_integration.php`, `http_reportes.php` | READ ONLY, invariantes, coherencia, roles y XSS |
+| `tests/reportes_browser.php`, `citas_browser.mjs` | Edge real escritorio/tablet/móvil |
+| `tests/regresion_cu21.php` | Campaña local reproducible y artefactos ignorados |
+
+Sin entidades nuevas: Cita N:1 Medico y Cita N:0..1 Especialidad. No consulta
+pacientes ni eventos. Reglas, filtros y secuencia UML: [CU21.md](CU21.md).
+
 Complementa [el mapa del Ciclo 1](../ciclo1/MAPA_DEL_CODIGO.md), que se conserva sin cambios.
 
 | Archivo | Responsabilidad / UML |

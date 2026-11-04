@@ -1,5 +1,17 @@
 # Pruebas
 
+CU21, solo `clinica_vida_salud_dev`, con esquema 001–008 existente:
+`php tests/regresion_cu21.php` ejecuta CU01–CU20, esquema, herramientas locales
+y las nuevas suites `reportes_integration`, `http_reportes`, `reportes_browser`.
+Una suite específica: `php tests/regresion_cu21.php reportes_integration`.
+Complemento sin red: `powershell -NoProfile -File tests/render_preparacion.ps1`.
+No se aplican migraciones. Fixtures ficticios y limpieza por IDs existentes;
+reportes reales en READ ONLY, invariantes, límites locales, roles, XSS y comparación
+CU14/CU19/CU20. Edge real 1440/900/390; capturas/logs ignorados en artifacts/cu21.
+Los logins cambian último acceso de cuentas ficticias; HTTP compara las nueve
+tablas después del login y Edge las ocho de dominio. Inventario/resultados:
+[PRUEBAS_CU21.md](../docs/ciclo2/PRUEBAS_CU21.md).
+
 CU20 (solo `clinica_vida_salud_dev`, requiere esquema 001–008 ya instalado, sin
 migraciones nuevas): `php tests/historial_paciente_integration.php`,
 `php tests/http_historial_paciente.php`, `php tests/historial_paciente_browser.php`.

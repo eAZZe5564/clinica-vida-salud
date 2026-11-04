@@ -1,0 +1,32 @@
+/* CU21: agregados legibles en escritorio, tablet y celular. */
+.reporte-panel { padding: 24px; margin: 20px 0; min-width: 0; }
+.reporte-panel p { line-height: 1.6; overflow-wrap: anywhere; }
+.reporte-filtros { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; align-items: end; }
+.reporte-filtros .field-group { min-width: 0; margin: 0; }
+.reporte-filtros input,.reporte-filtros select { width: 100%; min-width: 0; padding: 10px; min-height: 46px; font: inherit; background: white; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; }
+.reporte-indicadores { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 16px; }
+.reporte-indicadores .reporte-panel { margin: 0; }
+.reporte-indicadores h2 { font-size: 1rem; }
+.reporte-cifra { font-size: 2rem; font-weight: 700; margin: 8px 0; }
+.reporte-panel table { width: 100%; }
+.reporte-panel th { overflow-wrap: anywhere; }
+@media(max-width:1000px) {
+    .reporte-filtros { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .reporte-panel .table-scroll { overflow: visible; }
+    .reporte-tabla,.reporte-tabla tbody,.reporte-tabla tr { display: block; width: 100%; }
+    .reporte-tabla thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+    .reporte-tabla tbody tr { border-bottom: 1px solid var(--line); padding: 14px 0; }
+    .reporte-tabla tbody th { display: block; white-space: normal; }
+    .reporte-tabla td { display: flex; justify-content: space-between; gap: 16px; white-space: normal; padding: 7px 10px; }
+    .reporte-tabla td::before { content: attr(data-label); color: var(--muted); }
+    .reporte-tabla tfoot { display: none; }
+}
+@media(max-width:760px) {
+    .reporte-filtros { grid-template-columns: minmax(0,1fr); }
+    .reporte-panel { padding: 18px; }
+    [data-reporte-tabla="estados"] { display: table; }
+    [data-reporte-tabla="estados"] tbody { display: table-row-group; }
+    [data-reporte-tabla="estados"] tr { display: table-row; }
+    [data-reporte-tabla="estados"] th,[data-reporte-tabla="estados"] td { display: table-cell; width: auto; text-align: left; }
+    [data-reporte-tabla="estados"] td::before { content: none; }
+}
