@@ -1,3 +1,458 @@
+-- CU23: contrato completo de 009; se valida antes de proyectar el esquema administrativo.
+DO $cu23$
+DECLARE clinico jsonb;
+BEGIN
+    -- CU23_METADATA_INICIO
+-- Solo metadatos públicos del contrato CU23; nunca selecciona datos clínicos.
+SELECT jsonb_build_object(
+ 'tablas', COALESCE((SELECT jsonb_object_agg(c.relname,c.relkind::text)
+   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='public' AND c.relname IN ('perfiles_clinicos','alergias_paciente','alergias_historial')), '{}'::jsonb),
+ 'columnas', COALESCE((SELECT jsonb_object_agg(c.relname||'.'||a.attname,jsonb_build_object(
+   'tipo',format_type(a.atttypid,a.atttypmod),'obligatoria',a.attnotnull,'identidad',a.attidentity::text,
+   'defecto',pg_get_expr(d.adbin,d.adrelid)))
+   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_attribute a ON a.attrelid=c.oid
+   LEFT JOIN pg_attrdef d ON d.adrelid=c.oid AND d.adnum=a.attnum
+   WHERE n.nspname='public' AND c.relname IN ('perfiles_clinicos','alergias_paciente','alergias_historial')
+   AND a.attnum>0 AND NOT a.attisdropped), '{}'::jsonb),
+ 'restricciones', COALESCE((SELECT jsonb_object_agg(c.relname||'.'||f.conname,jsonb_build_object(
+   'tipo',f.contype::text,'valida',f.convalidated,'diferible',f.condeferrable,'definicion',pg_get_constraintdef(f.oid)))
+   FROM pg_constraint f JOIN pg_class c ON c.oid=f.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='public' AND c.relname IN ('perfiles_clinicos','alergias_paciente','alergias_historial')), '{}'::jsonb),
+ 'indices', COALESCE((SELECT jsonb_object_agg(ic.relname,jsonb_build_object(
+   'unico',i.indisunique,'valido',i.indisvalid,'listo',i.indisready,'definicion',pg_get_indexdef(i.indexrelid)))
+   FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+   JOIN pg_class ic ON ic.oid=i.indexrelid
+   WHERE n.nspname='public' AND c.relname IN ('perfiles_clinicos','alergias_paciente','alergias_historial')), '{}'::jsonb)
+) INTO clinico;
+    -- CU23_METADATA_FIN
+    IF clinico <> '{"tablas":{},"columnas":{},"restricciones":{},"indices":{}}'::jsonb AND clinico IS DISTINCT FROM $cu23_contrato$
+{
+  "tablas": {
+    "alergias_paciente": "r",
+    "perfiles_clinicos": "r",
+    "alergias_historial": "r"
+  },
+  "indices": {
+    "alergias_paciente_pkey": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX alergias_paciente_pkey ON public.alergias_paciente USING btree (id)"
+    },
+    "perfiles_clinicos_pkey": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX perfiles_clinicos_pkey ON public.perfiles_clinicos USING btree (paciente_id)"
+    },
+    "alergias_historial_pkey": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX alergias_historial_pkey ON public.alergias_historial USING btree (id)"
+    },
+    "alergias_paciente_estado_idx": {
+      "listo": true,
+      "unico": false,
+      "valido": true,
+      "definicion": "CREATE INDEX alergias_paciente_estado_idx ON public.alergias_paciente USING btree (paciente_id, estado, id)"
+    },
+    "alergias_historial_version_unica": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX alergias_historial_version_unica ON public.alergias_historial USING btree (alergia_id, version)"
+    },
+    "alergias_paciente_sustancia_activa_uidx": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX alergias_paciente_sustancia_activa_uidx ON public.alergias_paciente USING btree (paciente_id, lower(btrim(regexp_replace((sustancia)::text, '[[:space:]]+'::text, ' '::text, 'g'::text)))) WHERE ((estado)::text = 'activa'::text)"
+    }
+  },
+  "columnas": {
+    "alergias_paciente.id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "a",
+      "obligatoria": true
+    },
+    "alergias_historial.id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "a",
+      "obligatoria": true
+    },
+    "alergias_paciente.estado": {
+      "tipo": "character varying(10)",
+      "defecto": "'activa'::character varying",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_historial.estado": {
+      "tipo": "character varying(10)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_historial.evento": {
+      "tipo": "character varying(20)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_paciente.version": {
+      "tipo": "integer",
+      "defecto": "1",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.version": {
+      "tipo": "integer",
+      "defecto": "1",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_historial.version": {
+      "tipo": "integer",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_paciente.reaccion": {
+      "tipo": "character varying(250)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "alergias_historial.reaccion": {
+      "tipo": "character varying(250)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "alergias_paciente.creado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_paciente.sustancia": {
+      "tipo": "character varying(120)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.creado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_historial.sustancia": {
+      "tipo": "character varying(120)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_historial.alergia_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_historial.usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_paciente.paciente_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.paciente_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_historial.cambiado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "alergias_paciente.observaciones": {
+      "tipo": "character varying(500)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "perfiles_clinicos.observaciones": {
+      "tipo": "character varying(500)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "alergias_historial.motivo_cambio": {
+      "tipo": "character varying(250)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "alergias_historial.observaciones": {
+      "tipo": "character varying(500)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "alergias_paciente.actualizado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.actualizado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.estado_alergias": {
+      "tipo": "character varying(20)",
+      "defecto": "'no_registrado'::character varying",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.grupo_sanguineo": {
+      "tipo": "character varying(3)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "alergias_paciente.creado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.creado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.fuente_grupo_sanguineo": {
+      "tipo": "character varying(120)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "alergias_paciente.actualizado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "perfiles_clinicos.actualizado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    }
+  },
+  "restricciones": {
+    "alergias_paciente.alergias_paciente_pkey": {
+      "tipo": "p",
+      "valida": true,
+      "diferible": false,
+      "definicion": "PRIMARY KEY (id)"
+    },
+    "perfiles_clinicos.perfiles_clinicos_pkey": {
+      "tipo": "p",
+      "valida": true,
+      "diferible": false,
+      "definicion": "PRIMARY KEY (paciente_id)"
+    },
+    "alergias_historial.alergias_historial_pkey": {
+      "tipo": "p",
+      "valida": true,
+      "diferible": false,
+      "definicion": "PRIMARY KEY (id)"
+    },
+    "perfiles_clinicos.perfiles_clinicos_grupo_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((grupo_sanguineo IS NULL) OR ((grupo_sanguineo)::text = ANY ((ARRAY['A+'::character varying, 'A-'::character varying, 'B+'::character varying, 'B-'::character varying, 'AB+'::character varying, 'AB-'::character varying, 'O+'::character varying, 'O-'::character varying])::text[]))))"
+    },
+    "alergias_paciente.alergias_paciente_estado_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((estado)::text = ANY ((ARRAY['activa'::character varying, 'inactiva'::character varying])::text[])))"
+    },
+    "alergias_paciente.alergias_paciente_fechas_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((actualizado_en >= creado_en))"
+    },
+    "alergias_paciente.alergias_paciente_version_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((version > 0))"
+    },
+    "perfiles_clinicos.perfiles_clinicos_fechas_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((actualizado_en >= creado_en))"
+    },
+    "perfiles_clinicos.perfiles_clinicos_version_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((version > 0))"
+    },
+    "alergias_historial.alergias_historial_estado_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((estado)::text = ANY ((ARRAY['activa'::character varying, 'inactiva'::character varying])::text[])))"
+    },
+    "alergias_historial.alergias_historial_evento_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((version = 1) AND ((evento)::text = 'registro'::text) AND ((estado)::text = 'activa'::text)) OR ((version > 1) AND ((evento)::text = 'actualizacion'::text)) OR ((version > 1) AND ((evento)::text = 'inactivacion'::text) AND ((estado)::text = 'inactiva'::text)) OR ((version > 1) AND ((evento)::text = 'reactivacion'::text) AND ((estado)::text = 'activa'::text))))"
+    },
+    "alergias_historial.alergias_historial_motivo_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((((evento)::text = 'registro'::text) AND (motivo_cambio IS NULL)) OR (((evento)::text <> 'registro'::text) AND (motivo_cambio IS NOT NULL) AND (btrim((motivo_cambio)::text) <> ''::text))))"
+    },
+    "alergias_historial.alergias_historial_version_unica": {
+      "tipo": "u",
+      "valida": true,
+      "diferible": false,
+      "definicion": "UNIQUE (alergia_id, version)"
+    },
+    "alergias_paciente.alergias_paciente_reaccion_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((reaccion IS NULL) OR (btrim((reaccion)::text) <> ''::text)))"
+    },
+    "alergias_paciente.alergias_paciente_paciente_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE RESTRICT"
+    },
+    "alergias_paciente.alergias_paciente_sustancia_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((btrim(regexp_replace((sustancia)::text, '[[:space:]]+'::text, ' '::text, 'g'::text)) <> ''::text) AND ((sustancia)::text = btrim(regexp_replace((sustancia)::text, '[[:space:]]+'::text, ' '::text, 'g'::text)))))"
+    },
+    "perfiles_clinicos.perfiles_clinicos_paciente_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE RESTRICT"
+    },
+    "alergias_historial.alergias_historial_alergia_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (alergia_id) REFERENCES alergias_paciente(id) ON DELETE RESTRICT"
+    },
+    "alergias_historial.alergias_historial_reaccion_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((reaccion IS NULL) OR (btrim((reaccion)::text) <> ''::text)))"
+    },
+    "alergias_historial.alergias_historial_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "perfiles_clinicos.perfiles_clinicos_grupo_documentado": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((grupo_sanguineo IS NULL) AND (fuente_grupo_sanguineo IS NULL)) OR ((grupo_sanguineo IS NOT NULL) AND (fuente_grupo_sanguineo IS NOT NULL) AND (btrim((fuente_grupo_sanguineo)::text) <> ''::text))))"
+    },
+    "alergias_historial.alergias_historial_sustancia_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((btrim(regexp_replace((sustancia)::text, '[[:space:]]+'::text, ' '::text, 'g'::text)) <> ''::text) AND ((sustancia)::text = btrim(regexp_replace((sustancia)::text, '[[:space:]]+'::text, ' '::text, 'g'::text)))))"
+    },
+    "alergias_paciente.alergias_paciente_observaciones_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((observaciones IS NULL) OR (btrim((observaciones)::text) <> ''::text)))"
+    },
+    "perfiles_clinicos.perfiles_clinicos_observaciones_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((observaciones IS NULL) OR (btrim((observaciones)::text) <> ''::text)))"
+    },
+    "perfiles_clinicos.perfiles_clinicos_estado_alergias_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((estado_alergias)::text = ANY ((ARRAY['no_registrado'::character varying, 'sin_conocidas'::character varying, 'con_registros'::character varying])::text[])))"
+    },
+    "alergias_historial.alergias_historial_observaciones_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((observaciones IS NULL) OR (btrim((observaciones)::text) <> ''::text)))"
+    },
+    "alergias_paciente.alergias_paciente_creado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "perfiles_clinicos.perfiles_clinicos_creado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "alergias_paciente.alergias_paciente_actualizado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (actualizado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "perfiles_clinicos.perfiles_clinicos_actualizado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (actualizado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    }
+  }
+}
+$cu23_contrato$::jsonb THEN
+        RAISE EXCEPTION 'Esquema incompatible: contrato clinico 009 parcial o alterado';
+    END IF;
+END;
+$cu23$;
 -- Esquema 001-004 (8/10), 001-005/006/007/008 (9/12, contratos estrictos).
 -- Solo catalogos y comprobaciones. No instala ni modifica objetos o registros.
 DO $$
@@ -43,16 +498,16 @@ DECLARE
 BEGIN
     -- CU15_METADATA_INICIO: unico punto de lectura, sustituido solo por fixtures aislados en tests.
     SELECT jsonb_build_object(
-      'tablas', COALESCE((SELECT jsonb_agg(c.relname ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p')),'[]'::jsonb),
+      'tablas', COALESCE((SELECT jsonb_agg(c.relname ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial')),'[]'::jsonb),
       'historial_tipo', (SELECT c.relkind::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='citas_historial'),
       'columnas', COALESCE((SELECT jsonb_object_agg(c.relname||'.'||a.attname,jsonb_build_object('tipo',format_type(a.atttypid,a.atttypmod),'obligatoria',a.attnotnull,'identidad',a.attidentity::text,'defecto',pg_get_expr(d.adbin,d.adrelid)))
         FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
-        WHERE n.nspname='public' AND c.relkind IN ('r','p') AND a.attnum>0 AND NOT a.attisdropped),'{}'::jsonb),
+        WHERE n.nspname='public' AND c.relkind IN ('r','p') AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial') AND a.attnum>0 AND NOT a.attisdropped),'{}'::jsonb),
       'referencias', COALESCE((SELECT jsonb_agg(jsonb_build_object(
         'origen',c.relname||'.'||(SELECT string_agg(a.attname,',' ORDER BY k.orden) FROM unnest(f.conkey) WITH ORDINALITY k(numero,orden) JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.numero),
         'destino',rn.nspname||'.'||rc.relname||'.'||(SELECT string_agg(a.attname,',' ORDER BY k.orden) FROM unnest(f.confkey) WITH ORDINALITY k(numero,orden) JOIN pg_attribute a ON a.attrelid=rc.oid AND a.attnum=k.numero),
         'borrado',f.confdeltype::text,'actualizacion',f.confupdtype::text,'valida',f.convalidated,'diferible',f.condeferrable))
-        FROM pg_constraint f JOIN pg_class c ON c.oid=f.conrelid JOIN pg_namespace n ON n.oid=f.connamespace JOIN pg_class rc ON rc.oid=f.confrelid JOIN pg_namespace rn ON rn.oid=rc.relnamespace WHERE n.nspname='public' AND f.contype='f'),'[]'::jsonb),
+        FROM pg_constraint f JOIN pg_class c ON c.oid=f.conrelid JOIN pg_namespace n ON n.oid=f.connamespace JOIN pg_class rc ON rc.oid=f.confrelid JOIN pg_namespace rn ON rn.oid=rc.relnamespace WHERE n.nspname='public' AND f.contype='f' AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial')),'[]'::jsonb),
       'indices_historial', COALESCE((SELECT jsonb_object_agg(ic.relname,jsonb_build_object(
         'metodo',am.amname,'unico',i.indisunique,'valido',i.indisvalid,'listo',i.indisready,'definicion',pg_get_indexdef(i.indexrelid),
         'atributos',i.indnatts,'claves',i.indnkeyatts,'predicado',pg_get_expr(i.indpred,i.indrelid),

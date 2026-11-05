@@ -1,0 +1,1 @@
+<section class="panel clinico-panel"><h1>No se pudo completar la operación</h1><ul><?php foreach($errores as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul><a class="text-link" href="/agenda/diaria">Volver a mi agenda</a></section>

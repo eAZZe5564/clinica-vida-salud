@@ -23,6 +23,8 @@ final class AgendaController extends CatalogoController
         }
         // pagina() reserva $vista para la ruta del archivo; evitar colisión al extraer datos.
         $datos['modoAgenda']=$datos['vista'];unset($datos['vista']);
+        $datos['perfilesClinicosPermitidos']=$this->actor['rol']==='medico'
+            ?(new \App\Repositories\PerfilClinicoRepository($this->pdo))->pacientesAutorizados((int)$this->actor['id']):[];
         $this->pagina('agenda/index','Agenda médica',$datos);
     }
 }

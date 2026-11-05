@@ -14,7 +14,7 @@ try{
     $ok($pdo->query('SHOW transaction_read_only')->fetchColumn()==='on','todas las pruebas exigen transacción READ ONLY');
     $pdo->exec($sql);$ok(true,'verificador completo sobre esquema local real');
     $real=json_decode($pdo->query($lectura)->fetchColumn(),true,512,JSON_THROW_ON_ERROR);
-    $ok(count($real['tablas'])===9&&count($real['referencias'])===12&&$real['historial_tipo']==='r','base local real posterior a 005: nueve tablas y doce FK');
+    $ok(count($real['tablas'])===9&&count($real['referencias'])===12&&$real['historial_tipo']==='r','contrato administrativo real posterior a 005: nueve tablas y doce FK; CU23 se valida por separado');
     $cu17=$real;
     // Aislar el contrato 007 sin cambiar la base real que puede tener 008.
     unset($cu17['indices_historial']['citas_historial_asistencia_unica_idx'],$cu17['restricciones']['citas_historial.citas_historial_asistencia_tiempo_valido']);

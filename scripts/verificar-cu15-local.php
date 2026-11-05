@@ -13,8 +13,9 @@ try {
     $cancelaciones=(bool)$pdo->query("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='citas_historial' AND column_name='motivo_cancelacion')")->fetchColumn();
     $confirmaciones=(bool)$pdo->query("SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.citas'::regclass AND conname='citas_estado_valido' AND position('confirmada' IN pg_get_constraintdef(oid))>0)")->fetchColumn();
     $asistencias=(bool)$pdo->query("SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.citas'::regclass AND conname='citas_estado_valido' AND position('presente' IN pg_get_constraintdef(oid))>0)")->fetchColumn();
-    echo json_encode(['base'=>'clinica_vida_salud_dev','esquema'=>$asistencias?'001-008':($confirmaciones?'001-007':($cancelaciones?'001-006':($tablas===9?'001-005':'001-004'))),
-        'tablas'=>$tablas,'claves_foraneas'=>$referencias,'historial'=>$tablas===9,'verificado'=>true,'solo_lectura'=>true],JSON_THROW_ON_ERROR).PHP_EOL;
+    $clinico=(bool)$pdo->query("SELECT to_regclass('public.perfiles_clinicos') IS NOT NULL")->fetchColumn();
+    echo json_encode(['base'=>'clinica_vida_salud_dev','esquema'=>$clinico?'001-009':($asistencias?'001-008':($confirmaciones?'001-007':($cancelaciones?'001-006':($tablas===9?'001-005':'001-004')))),
+        'tablas'=>$tablas,'claves_foraneas'=>$referencias,'historial'=>$tablas===9||$tablas===12,'verificado'=>true,'solo_lectura'=>true],JSON_THROW_ON_ERROR).PHP_EOL;
 } catch (Throwable) {
     fwrite(STDERR,"Esquema local incompatible o comprobacion no disponible. No se realizaron escrituras.\n");
     $salida=1;

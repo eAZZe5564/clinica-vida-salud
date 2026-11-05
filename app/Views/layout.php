@@ -41,6 +41,7 @@ $nombresRoles = [
     <meta name="description" content="Sistema de gestión de Clínica Vida Salud.">
     <title><?= e($titulo . ' | ' . $appName) ?></title>
     <link rel="stylesheet" href="/assets/css/app.css">
+    <?php if(isset($vista)&&str_starts_with($vista,'clinico/')): ?><link rel="stylesheet" href="/assets/css/clinico.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'reportes/')): ?><link rel="stylesheet" href="/assets/css/reportes.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'historial/')): ?><link rel="stylesheet" href="/assets/css/historial.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'agenda/')): ?><link rel="stylesheet" href="/assets/css/agenda.css"><?php endif; ?>

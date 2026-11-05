@@ -2,10 +2,10 @@
 
 Aplicación académica PHP/PostgreSQL para gestionar Clínica Vida Salud por etapas. Implementa CU01–CU14: autenticación, usuarios, pacientes, médicos, especialidades, horarios, disponibilidad, reserva y consulta de citas. Las migraciones 001–004 están aplicadas localmente; CU14 funciona sin migraciones adicionales. El alcance corresponde al Ciclo 1.
 
-La rama de desarrollo del Ciclo 2 incorpora CU15–CU22: reportes y exportaciones
-PDF/CSV con el esquema 001–008 (nueve tablas/doce FK). Sigue
+La rama de desarrollo del Ciclo 2 incorpora CU15–CU23: reportes y exportaciones
+PDF/CSV, perfil clínico básico y alergias con el esquema 001–009 (doce tablas/veinte FK). Sigue
 [la documentación del Ciclo 2](docs/ciclo2/README.md) y
-[CU22](docs/ciclo2/CU22.md) para sus requisitos y límites. Render conserva el Ciclo 1.
+[CU22](docs/ciclo2/CU22.md) y [CU23](docs/ciclo2/CU23.md) para sus requisitos y límites. Render conserva el Ciclo 1.
 
 ## Tecnologías
 

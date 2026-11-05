@@ -1,5 +1,18 @@
 # Pruebas
 
+CU23: PostgreSQL local clinica_vida_salud_dev con 001–009 ya aplicado y dependencias
+CU22 instaladas. No repetir migraciones para ejecutar pruebas.
+`php tests/regresion_cu23.php` ejecuta CU01–CU22 y las ocho suites nuevas;
+`php tests/regresion_cu23.php --solo-cu23` ejecuta únicamente CU23. También acepta
+el nombre de una suite CU23 para investigar un fallo. Complementa la campaña
+completa con el lector PDF Python y PowerShell sin red indicados en CU22.
+`php scripts/verificar-cu23-local.php` valida el contrato 12/20 en READ ONLY.
+Las pruebas usan pacientes/cuentas inventados, limpian sus IDs, no desactivan
+restricciones y no acceden a Render. Edge comprueba escritorio/tablet/celular
+sin generar capturas clínicas; los logs solo contienen etiquetas y diagnósticos
+sanitizados y quedan ignorados. Resultados e inventario:
+[PRUEBAS_CU23.md](../docs/ciclo2/PRUEBAS_CU23.md).
+
 CU22, solo `clinica_vida_salud_dev` con 001–008 y dependencias instaladas desde
 composer.lock: `php tests/regresion_cu22.php` ejecuta nuevamente CU01–CU21 y las
 suites nuevas de CSV/PDF, HTTP, integración READ ONLY, Edge y Docker estático.

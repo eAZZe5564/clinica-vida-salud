@@ -14,6 +14,18 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if(preg_match('#^/pacientes/([1-9][0-9]*)/(perfil-clinico|alergias)(?:/([1-9][0-9]*)/(editar|actualizar|historial))?$#',$path,$clinico)===1){
+        $controlador=new \App\Controllers\PerfilesClinicosController();
+        $paciente=filter_var($clinico[1],FILTER_VALIDATE_INT);$alergia=isset($clinico[3])?filter_var($clinico[3],FILTER_VALIDATE_INT):null;
+        $accion=$clinico[4]??'';$tipo=$clinico[2];
+        if($paciente===false||$alergia===false||($tipo==='perfil-clinico'&&$alergia!==null)){http_response_code(404);require dirname(__DIR__).'/app/Views/errors/404.php';}
+        else{
+            $permitidos=$accion==='actualizar'?['POST']:($accion!==''?['GET']:['GET','POST']);
+            if(!in_array($method,$permitidos,true)){http_response_code(405);header('Allow: '.implode(', ',$permitidos));require dirname(__DIR__).'/app/Views/errors/405.php';}
+            else{$vista=$tipo==='perfil-clinico'?'perfil':($accion==='historial'?'historial':'alergias');
+                $method==='POST'?$controlador->guardar($paciente,$vista,$alergia):$controlador->mostrar($paciente,$vista,$alergia);}
+        }exit;
+    }
     if(preg_match('#^/reportes/citas/exportar/(pdf|csv)$#',$path,$exportacion)===1){
         $controlador=new \App\Controllers\ReportesCitasController();
         if($method!=='GET'){http_response_code(405);header('Allow: GET');require dirname(__DIR__).'/app/Views/errors/405.php';}

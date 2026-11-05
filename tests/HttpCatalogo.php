@@ -5,16 +5,17 @@ final class HttpCatalogo
 {
     private mixed $proceso;
     private string $base;
-    public function __construct(?array $entorno=null,string $rutaComprobacion='/login',int $estadoComprobacion=200)
+    public function __construct(?array $entorno=null,string $rutaComprobacion='/login',int $estadoComprobacion=200,?string $registroPrueba=null)
     {
         $puerto = random_int(30000,45000); $this->base = 'http://127.0.0.1:' . $puerto;
         $this->proceso = proc_open([PHP_BINARY,'-S','127.0.0.1:' . $puerto,'-t',dirname(__DIR__) . '/public'],
-            [0=>['pipe','r'],1=>['file','NUL','a'],2=>['file','NUL','a']],$pipes,dirname(__DIR__),$entorno);
+            [0=>['pipe','r'],1=>['file',$registroPrueba??'NUL','a'],2=>['file',$registroPrueba??'NUL','a']],$pipes,dirname(__DIR__),$entorno);
         if (!is_resource($this->proceso)) { throw new RuntimeException('No se pudo iniciar PHP'); }
         fclose($pipes[0]);
         for ($i=0;$i<30;$i++) { usleep(100000); if ($this->pedir($rutaComprobacion)['status']===$estadoComprobacion) { return; } }
         $this->cerrar(); throw new RuntimeException('Servidor HTTP no disponible');
     }
+    public function base(): string { return $this->base; }
     public function pedir(string $ruta, string $metodo='GET', string $cookie='', array $datos=[]): array
     {
         $opciones=['method'=>$metodo,'header'=>'Accept: text/html' . ($cookie ? "\r\nCookie: PHPSESSID=$cookie" : ''),'ignore_errors'=>true,'follow_location'=>0,'timeout'=>5];

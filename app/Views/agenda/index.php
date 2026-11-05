@@ -40,6 +40,7 @@ $hora=static fn(\DateTimeImmutable $d):string=>$d->format('H:i');
 <?php if($c['estado']==='cancelada'): ?><p class="agenda-aviso">Registro histórico cancelado; no reserva el horario.</p><?php endif; ?>
 <?php if(!$evento['cubierta']): ?><p class="agenda-aviso">Fuera de la atención configurada actualmente.</p><?php endif; ?>
 <a class="text-link" href="/citas/<?= (int)$c['id'] ?>">Ver <?= e($c['codigo']) ?></a>
+<?php if($usuario['rol']==='medico'&&isset($perfilesClinicosPermitidos[(int)$c['paciente_id']])): ?><a class="text-link" href="/pacientes/<?= (int)$c['paciente_id'] ?>/perfil-clinico">Perfil clínico y alergias</a><?php endif; ?>
 <?php else: ?><p><?= e(['fuera'=>'Fuera de atención','vacio'=>'Sin cita registrada','oculto'=>'Intervalo con cita fuera del día o filtro'][$evento['tipo']]) ?></p><?php endif; ?>
 </li><?php endforeach; ?></ol></section><?php endforeach; ?></div>
 <?php endif; ?>

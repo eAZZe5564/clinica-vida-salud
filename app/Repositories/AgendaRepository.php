@@ -29,7 +29,7 @@ final class AgendaRepository
         // La duración está limitada a 30 minutos por el CHECK existente. Se incluye
         // el arrastre anterior solo para no presentar un intervalo ocupado como vacío.
         // No se aplica DATE() a la columna indexada ni se consultan motivos/contactos.
-        $q=$this->pdo->prepare("SELECT c.id,c.estado,c.fecha_hora_inicio,c.duracion_minutos,
+        $q=$this->pdo->prepare("SELECT c.id,c.paciente_id,c.estado,c.fecha_hora_inicio,c.duracion_minutos,
             p.nombres AS paciente_nombres,p.apellidos AS paciente_apellidos,e.nombre AS especialidad
             FROM citas c JOIN pacientes p ON p.id=c.paciente_id
             LEFT JOIN especialidades e ON e.id=c.especialidad_id

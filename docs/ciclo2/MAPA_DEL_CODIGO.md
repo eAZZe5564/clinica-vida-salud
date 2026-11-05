@@ -1,5 +1,27 @@
 # Mapa del código — Ciclo 2
 
+## CU23 — Perfil clínico y alergias, implementación local
+
+| Archivo | Responsabilidad |
+|---|---|
+| `app/Models/PerfilClinico.php` | Enumeraciones clínicas sin valores médicos predeterminados |
+| `app/Services/PerfilClinicoService.php`, `PerfilClinicoException.php` | Relación asistencial diaria, permisos por operación, validación, versiones, bloqueos y errores seguros |
+| `app/Repositories/PerfilClinicoRepository.php` | SQL parametrizado explícito, perfiles, alergias y revisiones atómicas |
+| `app/Controllers/PerfilesClinicosController.php`, `public/index.php` | Rutas privadas, roles, CSRF, métodos y POST-Redirect-GET |
+| `app/Views/clinico/*`, `public/assets/css/clinico.css`, `app/Views/layout.php` | Formularios, información desconocida y revisiones responsivas, sin recursos externos |
+| `AgendaController.php`, `AgendaRepository.php`, `app/Views/agenda/index.php` | Enlace para pacientes autorizados del día; sin mostrar datos clínicos en la agenda |
+| `database/migrations/009_perfil_clinico_alergias.sql` | Perfil, alergias y revisiones; aplicada localmente tras autorización, 12 tablas/20 FK |
+| `scripts/aplicar-migracion-009.php`, `Cu23Esquema.php` | Aplicación única y transaccional, guardas de destino y conservación de tablas previas |
+| `scripts/cu23/catalogo.sql`, `scripts/render/verificar-instalacion.sql` | Catálogo clínico estricto y compatibilidad de contratos administrativos anteriores |
+| `scripts/verificar-cu23-local.php`, `verificar-cu15-local.php` | Verificación READ ONLY del esquema completo |
+| `scripts/inspeccionar-cu23-local.php` | Herramienta exclusivamente anterior a 009; ahora rechaza la base ya migrada |
+| `tests/PerfilClinicoPrueba.php`, `perfil_clinico_*.php`, `http_perfil_clinico.php`, `esquema_cu23_validation.php` | Fixtures inventados y pruebas de integración, validación, integridad, roles, privacidad, esquema y concurrencia |
+| `tests/perfil_clinico_browser.mjs`, `perfil_clinico_browser.php` | Edge real en tres tamaños sin capturas clínicas ni solicitudes a terceros |
+| `tests/regresion_cu23.php` | Campaña reproducible, con opción de ejecutar solo CU23 |
+| `docs/ciclo2/CU23.md`, `PRUEBAS_CU23.md` | Reglas, límites, resultados actuales e inventario exacto |
+
+No se modifica Render ni main. Los cinco archivos anteriores y .env permanecen intactos.
+
 ## CU22 — Exportaciones PDF y CSV
 
 | Archivo | Responsabilidad |
