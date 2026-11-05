@@ -14,6 +14,11 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if(preg_match('#^/reportes/citas/exportar/(pdf|csv)$#',$path,$exportacion)===1){
+        $controlador=new \App\Controllers\ReportesCitasController();
+        if($method!=='GET'){http_response_code(405);header('Allow: GET');require dirname(__DIR__).'/app/Views/errors/405.php';}
+        else{$controlador->exportar($exportacion[1]);}exit;
+    }
     if($path==='/reportes/citas'){
         $controlador=new \App\Controllers\ReportesCitasController();
         if($method!=='GET'){http_response_code(405);header('Allow: GET');require dirname(__DIR__).'/app/Views/errors/405.php';}

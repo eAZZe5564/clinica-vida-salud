@@ -1,5 +1,23 @@
 # Mapa del código — Ciclo 2
 
+## CU22 — Exportaciones PDF y CSV
+
+| Archivo | Responsabilidad |
+|---|---|
+| `app/Exports/ReporteCitaDocumento.php` | Presentación de un resultado CU21, metadatos, filtros y filas CSV; sin SQL ni estadísticas nuevas |
+| `app/Exports/ReporteCitaCsv.php` | BOM, punto y coma, CRLF, fputcsv y neutralización de fórmulas solo en texto |
+| `app/Exports/ReporteCitaPdf.php`, `ReportePdfLimiteException.php` | Dompdf local, A4, recursos desactivados, temporales privados, páginas y límite de tamaño |
+| `app/Views/reportes/pdf.php` | Plantilla PDF local, tablas y metadatos escapados |
+| `app/Controllers/ReportesCitasController.php` | CU21 y CU22 llaman al mismo servicio; validación, respuestas y errores seguros |
+| `app/Views/reportes/citas.php`, `public/assets/css/reportes.css`, `public/index.php` | Acciones responsivas y rutas GET autorizadas con los cinco filtros |
+| `composer.json`, `composer.lock`, `Dockerfile`, `.dockerignore` | Dependencias reproducibles y build desde lock; sin vendor ni secretos locales |
+| `tests/exportacion_*_validation.php`, `exportaciones_integration.php`, `http_exportacion_*.php` | Formatos, fórmulas, READ ONLY, agregados idénticos y HTTP real |
+| `tests/exportaciones_browser.php`, `citas_browser.mjs`, `leer_pdf_cu22.py` | Descargas Edge, lector PDF real, Unicode, páginas y cifras |
+| `tests/exportaciones_docker_validation.php`, `regresion_cu22.php` | Inspección estática Docker y campaña local reproducible |
+
+CU21 permanece como única fuente de cálculos. No hay entidades o migraciones
+nuevas. Diseño, seguridad y dependencias: [CU22.md](CU22.md).
+
 ## CU21 — Reportes administrativos
 
 | Archivo | Responsabilidad |

@@ -22,7 +22,7 @@ try{
         $ok(str_contains($body,'&lt;script&gt;FICTICIO_CU21&lt;/script&gt;')&&!str_contains($body,'<script>FICTICIO_CU21</script>'),'médico escapado '.$rol);
         $ok(str_contains($body,'&lt;img src=x onerror=FICTICIO_CU21&gt;')&&!str_contains($body,'<img src=x onerror=FICTICIO_CU21>'),'especialidad escapada '.$rol);
         foreach(['Paciente &lt;b&gt;','MOTIVO_CLINICO_PRIVADO_CU19','DIRECCION_PRIVADA_CU19','CI-PRIVADO-','hash_contrasena','motivo_cancelacion','70001122'] as $privado){$ok(!str_contains($body,$privado),'sin dato de paciente o secreto '.$rol);}
-        $ok(!preg_match('/href="[^\"]*\.(pdf|xlsx|csv)/i',$body)&&!str_contains($body,'Exportar'),'sin exportaciones CU22 '.$rol);
+        $ok(!preg_match('/href="[^\"]*\.(xlsx|docx|xml)/i',$body)&&str_contains($body,'data-exportar-pdf')&&str_contains($body,'data-exportar-csv'),'acciones CU22 sin formatos ajenos '.$rol);
         foreach(['POST','PUT','DELETE'] as $metodo){$ok($http->pedir($url,$metodo,$cookie,['estado'=>'cancelada'])['status']===405,'método sin escritura '.$rol.' '.$metodo);}
         $ok(str_contains($http->pedir('/dashboard','GET',$cookie)['body'],'href="/reportes/citas"'),'integración menú/panel '.$rol);
     }

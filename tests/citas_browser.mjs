@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join, dirname, basename, resolve } from 'node:path';
 
@@ -51,7 +52,52 @@ try {
     await navigation(() => send('Page.navigate', { url: `${data.base}/login` }));
     await navigation(() => evaluate(`document.querySelector('[name="correo"]').value=${JSON.stringify(data.correo)};document.querySelector('[name="contrasena"]').value=${JSON.stringify(data.password)};document.querySelector('form[action="/login"]').requestSubmit();`));
     check(await evaluate('location.pathname==="/dashboard"'), 'Login ficticio en navegador');
-    if (data.reportes) {
+    if (data.exportaciones) {
+        const directory = resolve('tests/artifacts/cu22'); await mkdir(directory, { recursive: true });
+        const captures = [], downloads = [];
+        await send('Browser.setDownloadBehavior', { behavior: 'allowAndName', downloadPath: directory, eventsEnabled: true });
+        const descargar = async (selector) => {
+            let nombre, guid, timer;
+            const completed = new Promise((resolve, reject) => {
+                const limpiar = () => { clearTimeout(timer); listeners.delete('Browser.downloadWillBegin'); listeners.delete('Browser.downloadProgress'); };
+                listeners.set('Browser.downloadWillBegin', new Set([event => { nombre = event.suggestedFilename; guid = event.guid; }]));
+                listeners.set('Browser.downloadProgress', new Set([event => {
+                    if (event.guid === guid && event.state === 'completed') { limpiar(); resolve({ guid, nombre }); }
+                    else if (event.state === 'canceled') { limpiar(); reject(new Error('Descarga cancelada')); }
+                }]));
+                timer = setTimeout(() => { limpiar(); reject(new Error('Descarga incompleta')); }, 20000);
+            });
+            await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+            const item = await completed;
+            const path = join(directory,item.guid); const bytes = await readFile(path);
+            await rm(path); return { ...item, bytes };
+        };
+        await navigation(() => send('Page.navigate', { url: `${data.base}/reportes/citas?${data.query}` }));
+        for (const [name,width,height] of [['escritorio',1440,1000],['movil',390,844]]) {
+            await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width===390 });
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), `CU22 sin desbordamiento ${name}`);
+            for (const formato of ['pdf','csv']) {
+                const selector = `[data-exportar-${formato}]`;
+                check(await evaluate(`document.querySelector('${selector}').getBoundingClientRect().height>=44`), `Acción táctil ${formato} ${name}`);
+                check(await evaluate(`['desde','hasta','medico_id','especialidad_id','estado'].every(k=>new URL(document.querySelector('${selector}').href).searchParams.get(k)===document.querySelector('[name="'+k+'"]').value)`), `Filtros exactos ${formato} ${name}`);
+                const item = await descargar(selector);
+                check(new RegExp(`^clinica-vida-salud-reporte-citas-[0-9-]+-a-[0-9-]+\\.${formato}$`).test(item.nombre), `Nombre de descarga ${formato}`);
+                check(formato==='pdf' ? item.bytes.subarray(0,5).toString()==='%PDF-' : item.bytes.subarray(0,3).equals(Buffer.from([239,187,191])), `Archivo binario real ${formato}`);
+                check(await evaluate('location.pathname==="/reportes/citas"&&Number(document.querySelector("[data-reporte-indicador=total]").textContent)===8'), `Pantalla y cifras conservadas ${formato}`);
+                if(formato==='pdf'&&name==='escritorio'){await writeFile(join(directory,'browser-reporte.pdf'),item.bytes);}
+                downloads.push(item.nombre);
+            }
+            const shot = await send('Page.captureScreenshot', { format:'png',captureBeyondViewport:true });
+            const path=join(directory,`exportaciones-${name}.png`); await writeFile(path,Buffer.from(shot.data,'base64'));captures.push(path);
+        }
+        await send('Emulation.setDeviceMetricsOverride', { width:1440,height:1000,deviceScaleFactor:1,mobile:false });
+        await navigation(() => send('Page.navigate', { url:pathToFileURL(join(directory,'browser-reporte.pdf')).href }));
+        await pause(2000);
+        check(await evaluate('location.protocol==="file:"&&!!document.querySelector("embed")'), 'PDF abierto en lector real integrado de Edge');
+        const lector=await send('Page.captureScreenshot',{format:'png'});
+        const lectorPath=join(directory,'lector-pdf-edge.png');await writeFile(lectorPath,Buffer.from(lector.data,'base64'));captures.push(lectorPath);
+        result={assertions,captures,downloads};
+    } else if (data.reportes) {
         const directory = resolve('tests/artifacts/cu21'); await mkdir(directory, { recursive: true });
         const captures = [];
         const cifra = (estado) => `Number(document.querySelector('[data-reporte-indicador="${estado}"]').textContent)`;
@@ -59,7 +105,7 @@ try {
         await navigation(() => send('Page.navigate', { url: `${data.base}/reportes/citas?${data.query}` }));
         check(await evaluate(`${cifra('total')}===8&&${cifra('programada')}===3`), 'Tarjetas con cifras reales');
         check(await evaluate('document.querySelectorAll("[data-reporte-tabla]").length===4'), 'Cuatro tablas de agregados');
-        check(await evaluate('document.querySelector("[data-reporte-filtros]").method==="get"&&!document.body.innerText.includes("Paciente ficticio")&&!document.body.innerText.includes("Exportar")'), 'Consulta agregada GET sin datos de paciente ni exportaciones');
+        check(await evaluate('document.querySelector("[data-reporte-filtros]").method==="get"&&!document.body.innerText.includes("Paciente ficticio")&&!!document.querySelector("[data-exportar-pdf]")&&!!document.querySelector("[data-exportar-csv]")'), 'Consulta agregada GET sin datos de paciente y con acciones CU22');
         const sumas = `[...document.querySelectorAll('[data-reporte-tabla]:not([data-reporte-tabla="estados"])')].every(t=>[...t.querySelectorAll('tbody tr')].reduce((n,tr)=>n+Number(tr.querySelector('td').textContent),0)===8)`;
         check(await evaluate(sumas), 'Subtotales de médico, especialidad y día coinciden con tarjetas');
         for (const [name,width,height] of [['escritorio',1440,1000],['tablet',900,1000],['movil',390,844]]) {

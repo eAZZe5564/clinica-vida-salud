@@ -2,6 +2,11 @@
 
 Aplicación académica PHP/PostgreSQL para gestionar Clínica Vida Salud por etapas. Implementa CU01–CU14: autenticación, usuarios, pacientes, médicos, especialidades, horarios, disponibilidad, reserva y consulta de citas. Las migraciones 001–004 están aplicadas localmente; CU14 funciona sin migraciones adicionales. El alcance corresponde al Ciclo 1.
 
+La rama de desarrollo del Ciclo 2 incorpora CU15–CU22: reportes y exportaciones
+PDF/CSV con el esquema 001–008 (nueve tablas/doce FK). Sigue
+[la documentación del Ciclo 2](docs/ciclo2/README.md) y
+[CU22](docs/ciclo2/CU22.md) para sus requisitos y límites. Render conserva el Ciclo 1.
+
 ## Tecnologías
 
 Preparación 7A para Render (25/10/2026): Docker PHP 8.4/Apache, PostgreSQL 17 nuevo e independiente y asistentes seguros desde Windows. Sigue [DESPLIEGUE_RENDER.md](docs/ciclo1/DESPLIEGUE_RENDER.md) para crear manualmente los recursos, inicializar y configurar HTTPS. Esta preparación no crea recursos ni ejecuta operaciones remotas; `.env` local no se utiliza en la imagen.
@@ -16,17 +21,22 @@ Preparación 7A para Render (25/10/2026): Docker PHP 8.4/Apache, PostgreSQL 17 n
 1. PHP 8.4 disponible en `PATH` con `pdo_pgsql` y `mbstring` habilitados.
 2. PostgreSQL local y su cliente `psql`.
 3. Git.
-4. Composer no es necesario: no se agregaron dependencias externas.
+4. Composer 2 para instalar las dependencias PDF del Ciclo 2 desde composer.lock;
+   PHP debe tener DOM, MBString e iconv. El Ciclo 1 original no usa Composer.
 
-En el entorno local se encontró PHP 8.4.22, `pdo_pgsql` habilitado (libpq 16.14), `psql` 17.10 y Git 2.41.0. Composer no se encontró. PostgreSQL local y PDO se conectan a `clinica_vida_salud_dev`.
+En el entorno local se encontró PHP 8.4.22, `pdo_pgsql` habilitado (libpq 16.14), `psql` 17.10 y Git 2.41.0. CU22 utiliza Composer 2.11.1 local, sin cambiar PATH. PostgreSQL local y PDO se conectan a `clinica_vida_salud_dev`.
 
 ## Instalar en Windows
 
 1. Abre esta carpeta en VS Code y verifica `php -v`, `php --ini`, `php -m` y `psql --version`. Utiliza PHP 8.4 y PostgreSQL 17; otras versiones no forman parte del entorno validado.
 2. Si PHP no está instalado, instala una distribución de PHP 8.4 para Windows adecuada a tu arquitectura y agrega su carpeta al `PATH`. En el `php.ini` activo, habilita `extension=pdo_pgsql` y `extension=mbstring`; confirma con `php --ri pdo_pgsql` y `php --ri mbstring`. `mbstring` se utiliza para validar y normalizar texto. Las sesiones deben estar habilitadas.
-3. Instala PostgreSQL 17 localmente solo si aún no está disponible, incluye las herramientas de línea de comandos y agrega su carpeta `bin` al `PATH`. El usuario de instalación necesita permiso para crear la base e instalar `btree_gist`. No se requiere Composer.
+3. Instala PostgreSQL 17 localmente solo si aún no está disponible, incluye las herramientas de línea de comandos y agrega su carpeta `bin` al `PATH`. El usuario de instalación necesita permiso para crear la base e instalar `btree_gist`.
 4. En una computadora nueva, copia `.env.example` solo si todavía no existe `.env`, con `if (-not (Test-Path -LiteralPath .env)) { Copy-Item -LiteralPath .env.example -Destination .env }`. Ajusta localmente DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASSWORD. Conserva APP_ENV=local y APP_TIMEZONE=America/La_Paz. No compartas ni subas `.env`; no hay contraseña predeterminada.
 5. La carpeta `public/` es la raíz pública: no sirvas la raíz del proyecto.
+6. En ramas del Ciclo 2 que incluyen CU22, instala Composer 2 desde su proveedor
+   oficial y ejecuta `composer install --no-dev --prefer-dist --no-interaction --no-scripts --no-plugins --optimize-autoloader`.
+   Después `composer check-platform-reqs --no-dev` y `composer audit --no-dev --locked`.
+   No ejecutes composer update para instalar una copia del proyecto ni publiques vendor/.
 
 ## PostgreSQL local
 

@@ -2,6 +2,8 @@
 **
 !Dockerfile
 !.dockerignore
+!composer.json
+!composer.lock
 !app/
 !app/**
 !public/

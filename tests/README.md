@@ -1,5 +1,17 @@
 # Pruebas
 
+CU22, solo `clinica_vida_salud_dev` con 001–008 y dependencias instaladas desde
+composer.lock: `php tests/regresion_cu22.php` ejecuta nuevamente CU01–CU21 y las
+suites nuevas de CSV/PDF, HTTP, integración READ ONLY, Edge y Docker estático.
+Después ejecuta `python tests/leer_pdf_cu22.py` con pypdf para lectura real de los
+PDF ficticios y `powershell -NoProfile -File tests/render_preparacion.ps1` sin red.
+Pypdf es solo herramienta de pruebas; no se necesita en la aplicación/Docker.
+En este entorno ya está disponible; no se instaló ninguna dependencia Python.
+No se declara probado Microsoft Excel ni un contenedor Docker si no se ejecutan.
+Capturas y PDFs ficticios de revisión quedan ignorados en tests/artifacts/cu22;
+los temporales del exportador y las descargas GUID se retiran automáticamente.
+Resultados, límites e inventario: [PRUEBAS_CU22.md](../docs/ciclo2/PRUEBAS_CU22.md).
+
 CU21, solo `clinica_vida_salud_dev`, con esquema 001–008 existente:
 `php tests/regresion_cu21.php` ejecuta CU01–CU20, esquema, herramientas locales
 y las nuevas suites `reportes_integration`, `http_reportes`, `reportes_browser`.

@@ -8,6 +8,8 @@
 .reporte-indicadores .reporte-panel { margin: 0; }
 .reporte-indicadores h2 { font-size: 1rem; }
 .reporte-cifra { font-size: 2rem; font-weight: 700; margin: 8px 0; }
+.reporte-exportaciones { display: flex; flex-wrap: wrap; gap: 14px; margin: 20px 0; }
+.reporte-exportaciones a { min-height: 44px; }
 .reporte-panel table { width: 100%; }
 .reporte-panel th { overflow-wrap: anywhere; }
 @media(max-width:1000px) {
@@ -24,6 +26,7 @@
 @media(max-width:760px) {
     .reporte-filtros { grid-template-columns: minmax(0,1fr); }
     .reporte-panel { padding: 18px; }
+    .reporte-exportaciones a { flex: 1; text-align: center; }
     [data-reporte-tabla="estados"] { display: table; }
     [data-reporte-tabla="estados"] tbody { display: table-row-group; }
     [data-reporte-tabla="estados"] tr { display: table-row; }
