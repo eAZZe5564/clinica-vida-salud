@@ -1,5 +1,27 @@
 # Mapa del código — Ciclo 2
 
+## CU24 — Antecedentes clínicos y resultados de laboratorio
+
+| Archivo | Responsabilidad |
+|---|---|
+| `app/Services/AccesoClinicoService.php`, `PerfilClinicoService.php` | Autorización y transacción compartidas CU23/CU24, misma política diaria y bloqueos |
+| `app/Models/RegistroClinico.php` | Categorías, eventos y lista cerrada de tablas/campos |
+| `app/Repositories/RegistroClinicoRepository.php` | Listados, fila actual y revisiones con SQL parametrizado |
+| `app/Services/RegistroClinicoService.php` | Validación de fechas/textos/decimales, versión esperada y escritura/auditoría atómicas |
+| `app/Controllers/RegistrosClinicosController.php`, `public/index.php` | Rutas privadas, métodos, CSRF y PRG |
+| `app/Views/clinico/registros.php`, `registro-formulario.php`, `cabecera.php` | Listados, detalles, formularios y revisiones; navegación común con CU23 y CSS clínico existente |
+| `database/migrations/010_antecedentes_laboratorio.sql` | Cuatro tablas/diez FK nuevas, aplicada una sola vez con autorización local; 16 tablas/30 FK |
+| `scripts/aplicar-migracion-010.php`, `Cu24Esquema.php`, `cu24/*` | Asistente transaccional y contratos de metadatos públicos; preservación de las doce tablas anteriores |
+| `scripts/verificar-cu24-local.php`, verificadores CU15/CU23 y SQL común | Contratos estrictos 8/10, 9/12, 12/20 y 16/30 en READ ONLY |
+| `scripts/inspeccionar-cu24-local.php` | Solo inspección anterior a 010; rechaza ahora la base ya migrada |
+| `tests/RegistroClinicoPrueba.php`, `registros_clinicos_*.php`, `http_registros_clinicos.php`, `esquema_cu24_validation.php` | Fixtures ficticios, integración, seguridad, privacidad, metadatos e integridad |
+| `tests/registros_clinicos_concurrency.php`, `registros_clinicos_browser.mjs` | Procesos PDO independientes y Edge en tres tamaños sin capturas clínicas |
+| `tests/regresion_cu24.php`, `regresion_cu23.php` | Campaña completa/anidada con argumentos aislados |
+| `docs/ciclo2/CU24.md`, `PRUEBAS_CU24.md` | Diseño real, permisos, auditoría, resultados e inventario |
+
+Las instantáneas históricas son campos tipados, no archivos de imagen ni adjuntos.
+Sin cambios de main, Render, migraciones 001–009, cinco archivos protegidos o .env.
+
 ## CU23 — Perfil clínico y alergias, implementación local
 
 | Archivo | Responsabilidad |

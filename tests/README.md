@@ -1,5 +1,16 @@
 # Pruebas
 
+CU24: solo PostgreSQL local clinica_vida_salud_dev con 001–010 ya aplicado.
+`php tests/regresion_cu24.php` ejecuta la regresión CU01–CU23 y las ocho suites
+CU24; `--solo-cu24` limita a CU24. Admite también el nombre de una suite CU24.
+`php scripts/verificar-cu24-local.php` valida 16 tablas/30 FK en READ ONLY.
+No repetir 010 ni ejecutar el inspector previo en una base ya migrada.
+Pruebas reales HTTP, concurrencia PDO, privacidad administrativa y Edge en tres
+tamaños, sin capturas clínicas. Se limpian únicamente fixtures ficticios propios.
+Resultados e inventario: [PRUEBAS_CU24.md](../docs/ciclo2/PRUEBAS_CU24.md).
+Para completar la campaña: lector PDF Python y PowerShell sin red de CU22.
+Los verificadores y pruebas de esquema CU23 reconocen ahora el contrato 16/30.
+
 CU23: PostgreSQL local clinica_vida_salud_dev con 001–009 ya aplicado y dependencias
 CU22 instaladas. No repetir migraciones para ejecutar pruebas.
 `php tests/regresion_cu23.php` ejecuta CU01–CU22 y las ocho suites nuevas;

@@ -6,8 +6,8 @@ $pattern='~-- CU23_METADATA_INICIO\R.*?-- CU23_METADATA_FIN~s';
 $pdo->beginTransaction();$pdo->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
 try{
     $pdo->exec($sql);cu23ValidarInstalacion($pdo);$real=cu23Catalogo($pdo);
-    clinicoAssert((int)$pdo->query("SELECT count(*) FROM pg_tables WHERE schemaname='public'")->fetchColumn()===12,'doce tablas reales exactas');
-    clinicoAssert((int)$pdo->query("SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND contype='f'")->fetchColumn()===20,'veinte FK reales exactas');
+    clinicoAssert((int)$pdo->query("SELECT count(*) FROM pg_tables WHERE schemaname='public'")->fetchColumn()===16,'dieciséis tablas reales exactas después de 010');
+    clinicoAssert((int)$pdo->query("SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND contype='f'")->fetchColumn()===30,'treinta FK reales exactas después de 010');
     clinicoAssert(count($real['columnas'])===32&&count($real['restricciones'])===30&&count($real['indices'])===6,'contrato clínico completo');
     $verificar=static function(array $c,bool $esperado,string $label)use($pdo,$sql,$pattern):void{
         $asignacion='clinico := '.$pdo->quote(json_encode($c,JSON_THROW_ON_ERROR)).'::jsonb;';

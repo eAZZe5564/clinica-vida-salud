@@ -1,3 +1,773 @@
+-- CU24: contrato 010 completo; no se aceptan instalaciones clínicas parciales.
+DO $cu24$
+DECLARE clinico jsonb;
+BEGIN
+    -- CU24_METADATA_INICIO
+-- Solo metadatos públicos del contrato CU24; nunca selecciona datos clínicos.
+SELECT jsonb_build_object(
+ 'tablas', COALESCE((SELECT jsonb_object_agg(c.relname,c.relkind::text)
+   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='public' AND c.relname IN ('antecedentes_clinicos','antecedentes_historial','resultados_laboratorio','laboratorios_historial')), '{}'::jsonb),
+ 'columnas', COALESCE((SELECT jsonb_object_agg(c.relname||'.'||a.attname,jsonb_build_object(
+   'tipo',format_type(a.atttypid,a.atttypmod),'obligatoria',a.attnotnull,'identidad',a.attidentity::text,
+   'defecto',pg_get_expr(d.adbin,d.adrelid)))
+   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_attribute a ON a.attrelid=c.oid
+   LEFT JOIN pg_attrdef d ON d.adrelid=c.oid AND d.adnum=a.attnum
+   WHERE n.nspname='public' AND c.relname IN ('antecedentes_clinicos','antecedentes_historial','resultados_laboratorio','laboratorios_historial')
+   AND a.attnum>0 AND NOT a.attisdropped), '{}'::jsonb),
+ 'restricciones', COALESCE((SELECT jsonb_object_agg(c.relname||'.'||f.conname,jsonb_build_object(
+   'tipo',f.contype::text,'valida',f.convalidated,'diferible',f.condeferrable,'definicion',pg_get_constraintdef(f.oid)))
+   FROM pg_constraint f JOIN pg_class c ON c.oid=f.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='public' AND c.relname IN ('antecedentes_clinicos','antecedentes_historial','resultados_laboratorio','laboratorios_historial')), '{}'::jsonb),
+ 'indices', COALESCE((SELECT jsonb_object_agg(ic.relname,jsonb_build_object(
+   'unico',i.indisunique,'valido',i.indisvalid,'listo',i.indisready,'definicion',pg_get_indexdef(i.indexrelid)))
+   FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+   JOIN pg_class ic ON ic.oid=i.indexrelid
+   WHERE n.nspname='public' AND c.relname IN ('antecedentes_clinicos','antecedentes_historial','resultados_laboratorio','laboratorios_historial')), '{}'::jsonb)
+) INTO clinico;
+    -- CU24_METADATA_FIN
+    IF clinico <> '{"tablas":{},"columnas":{},"restricciones":{},"indices":{}}'::jsonb THEN
+        IF clinico IS DISTINCT FROM $cu24_contrato$
+{
+  "tablas": {
+    "antecedentes_clinicos": "r",
+    "antecedentes_historial": "r",
+    "laboratorios_historial": "r",
+    "resultados_laboratorio": "r"
+  },
+  "indices": {
+    "antecedentes_clinicos_pkey": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX antecedentes_clinicos_pkey ON public.antecedentes_clinicos USING btree (id)"
+    },
+    "antecedentes_historial_pkey": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX antecedentes_historial_pkey ON public.antecedentes_historial USING btree (id)"
+    },
+    "laboratorios_historial_pkey": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX laboratorios_historial_pkey ON public.laboratorios_historial USING btree (id)"
+    },
+    "resultados_laboratorio_pkey": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX resultados_laboratorio_pkey ON public.resultados_laboratorio USING btree (id)"
+    },
+    "antecedentes_historial_version_unica": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX antecedentes_historial_version_unica ON public.antecedentes_historial USING btree (antecedente_id, version)"
+    },
+    "laboratorios_historial_version_unica": {
+      "listo": true,
+      "unico": true,
+      "valido": true,
+      "definicion": "CREATE UNIQUE INDEX laboratorios_historial_version_unica ON public.laboratorios_historial USING btree (resultado_id, version)"
+    },
+    "antecedentes_clinicos_paciente_fecha_idx": {
+      "listo": true,
+      "unico": false,
+      "valido": true,
+      "definicion": "CREATE INDEX antecedentes_clinicos_paciente_fecha_idx ON public.antecedentes_clinicos USING btree (paciente_id, fecha_evento DESC NULLS LAST, id DESC)"
+    },
+    "resultados_laboratorio_paciente_fecha_idx": {
+      "listo": true,
+      "unico": false,
+      "valido": true,
+      "definicion": "CREATE INDEX resultados_laboratorio_paciente_fecha_idx ON public.resultados_laboratorio USING btree (paciente_id, fecha_resultado DESC NULLS LAST, fecha_muestra DESC NULLS LAST, id DESC)"
+    }
+  },
+  "columnas": {
+    "antecedentes_clinicos.id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "a",
+      "obligatoria": true
+    },
+    "antecedentes_historial.id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "a",
+      "obligatoria": true
+    },
+    "laboratorios_historial.id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "a",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "a",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.estado": {
+      "tipo": "character varying(10)",
+      "defecto": "'activo'::character varying",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.valor": {
+      "tipo": "numeric(18,6)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.valor": {
+      "tipo": "numeric(18,6)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "antecedentes_clinicos.version": {
+      "tipo": "integer",
+      "defecto": "1",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_historial.estado": {
+      "tipo": "character varying(10)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_historial.evento": {
+      "tipo": "character varying(20)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.estado": {
+      "tipo": "character varying(10)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.evento": {
+      "tipo": "character varying(20)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.unidad": {
+      "tipo": "character varying(40)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.estado": {
+      "tipo": "character varying(10)",
+      "defecto": "'activo'::character varying",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.unidad": {
+      "tipo": "character varying(40)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "antecedentes_historial.version": {
+      "tipo": "integer",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.estudio": {
+      "tipo": "character varying(120)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.version": {
+      "tipo": "integer",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.estudio": {
+      "tipo": "character varying(120)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.version": {
+      "tipo": "integer",
+      "defecto": "1",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.categoria": {
+      "tipo": "character varying(20)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.creado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_historial.categoria": {
+      "tipo": "character varying(20)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.creado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.descripcion": {
+      "tipo": "character varying(1000)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.paciente_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_historial.usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.fecha_evento": {
+      "tipo": "date",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "antecedentes_historial.cambiado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_historial.descripcion": {
+      "tipo": "character varying(1000)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.cambiado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "laboratorios_historial.laboratorio": {
+      "tipo": "character varying(160)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.laboratorio": {
+      "tipo": "character varying(160)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.paciente_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.observaciones": {
+      "tipo": "character varying(500)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "antecedentes_historial.fecha_evento": {
+      "tipo": "date",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "laboratorios_historial.resultado_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.actualizado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_historial.motivo_cambio": {
+      "tipo": "character varying(250)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "antecedentes_historial.observaciones": {
+      "tipo": "character varying(500)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "laboratorios_historial.fecha_muestra": {
+      "tipo": "date",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "laboratorios_historial.motivo_cambio": {
+      "tipo": "character varying(250)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "laboratorios_historial.observaciones": {
+      "tipo": "character varying(500)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.fecha_muestra": {
+      "tipo": "date",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.observaciones": {
+      "tipo": "character varying(500)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "antecedentes_historial.antecedente_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.actualizado_en": {
+      "tipo": "timestamp with time zone",
+      "defecto": "clock_timestamp()",
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.fecha_aproximada": {
+      "tipo": "boolean",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "laboratorios_historial.fecha_resultado": {
+      "tipo": "date",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "laboratorios_historial.resultado_texto": {
+      "tipo": "character varying(2000)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.fecha_resultado": {
+      "tipo": "date",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.resultado_texto": {
+      "tipo": "character varying(2000)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_historial.fecha_aproximada": {
+      "tipo": "boolean",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "laboratorios_historial.rango_referencia": {
+      "tipo": "character varying(250)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "resultados_laboratorio.rango_referencia": {
+      "tipo": "character varying(250)",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": false
+    },
+    "antecedentes_clinicos.creado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.creado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "antecedentes_clinicos.actualizado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    },
+    "resultados_laboratorio.actualizado_por_usuario_id": {
+      "tipo": "bigint",
+      "defecto": null,
+      "identidad": "",
+      "obligatoria": true
+    }
+  },
+  "restricciones": {
+    "antecedentes_clinicos.antecedentes_clinicos_pkey": {
+      "tipo": "p",
+      "valida": true,
+      "diferible": false,
+      "definicion": "PRIMARY KEY (id)"
+    },
+    "antecedentes_historial.antecedentes_historial_pkey": {
+      "tipo": "p",
+      "valida": true,
+      "diferible": false,
+      "definicion": "PRIMARY KEY (id)"
+    },
+    "laboratorios_historial.laboratorios_historial_pkey": {
+      "tipo": "p",
+      "valida": true,
+      "diferible": false,
+      "definicion": "PRIMARY KEY (id)"
+    },
+    "resultados_laboratorio.resultados_laboratorio_pkey": {
+      "tipo": "p",
+      "valida": true,
+      "diferible": false,
+      "definicion": "PRIMARY KEY (id)"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_fecha_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((fecha_evento IS NULL) AND (fecha_aproximada IS NULL)) OR ((fecha_evento IS NOT NULL) AND (fecha_aproximada IS NOT NULL) AND ((fecha_evento >= '0001-01-01'::date) AND (fecha_evento <= '9999-12-31'::date)))))"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_estado_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_fechas_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((actualizado_en >= creado_en))"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_version_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((version > 0))"
+    },
+    "antecedentes_historial.antecedentes_historial_fecha_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((fecha_evento IS NULL) AND (fecha_aproximada IS NULL)) OR ((fecha_evento IS NOT NULL) AND (fecha_aproximada IS NOT NULL) AND ((fecha_evento >= '0001-01-01'::date) AND (fecha_evento <= '9999-12-31'::date)))))"
+    },
+    "laboratorios_historial.laboratorios_historial_rango_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((rango_referencia IS NULL) OR (btrim((rango_referencia)::text) <> ''::text)))"
+    },
+    "laboratorios_historial.laboratorios_historial_texto_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((btrim((resultado_texto)::text) <> ''::text))"
+    },
+    "laboratorios_historial.laboratorios_historial_valor_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((valor IS NULL) OR (valor <> 'NaN'::numeric)))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_rango_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((rango_referencia IS NULL) OR (btrim((rango_referencia)::text) <> ''::text)))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_texto_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((btrim((resultado_texto)::text) <> ''::text))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_valor_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((valor IS NULL) OR (valor <> 'NaN'::numeric)))"
+    },
+    "antecedentes_historial.antecedentes_historial_estado_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))"
+    },
+    "antecedentes_historial.antecedentes_historial_evento_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((version = 1) AND ((evento)::text = 'registro'::text) AND ((estado)::text = 'activo'::text)) OR ((version > 1) AND ((evento)::text = 'rectificacion'::text)) OR ((version > 1) AND ((evento)::text = 'inactivacion'::text) AND ((estado)::text = 'inactivo'::text)) OR ((version > 1) AND ((evento)::text = 'reactivacion'::text) AND ((estado)::text = 'activo'::text))))"
+    },
+    "antecedentes_historial.antecedentes_historial_motivo_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((((evento)::text = 'registro'::text) AND (motivo_cambio IS NULL)) OR (((evento)::text <> 'registro'::text) AND (motivo_cambio IS NOT NULL) AND (btrim((motivo_cambio)::text) <> ''::text))))"
+    },
+    "antecedentes_historial.antecedentes_historial_version_unica": {
+      "tipo": "u",
+      "valida": true,
+      "diferible": false,
+      "definicion": "UNIQUE (antecedente_id, version)"
+    },
+    "laboratorios_historial.laboratorios_historial_estado_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))"
+    },
+    "laboratorios_historial.laboratorios_historial_evento_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((version = 1) AND ((evento)::text = 'registro'::text) AND ((estado)::text = 'activo'::text)) OR ((version > 1) AND ((evento)::text = 'rectificacion'::text)) OR ((version > 1) AND ((evento)::text = 'inactivacion'::text) AND ((estado)::text = 'inactivo'::text)) OR ((version > 1) AND ((evento)::text = 'reactivacion'::text) AND ((estado)::text = 'activo'::text))))"
+    },
+    "laboratorios_historial.laboratorios_historial_motivo_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((((evento)::text = 'registro'::text) AND (motivo_cambio IS NULL)) OR (((evento)::text <> 'registro'::text) AND (motivo_cambio IS NOT NULL) AND (btrim((motivo_cambio)::text) <> ''::text))))"
+    },
+    "laboratorios_historial.laboratorios_historial_origen_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((laboratorio IS NULL) OR (btrim((laboratorio)::text) <> ''::text)))"
+    },
+    "laboratorios_historial.laboratorios_historial_unidad_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((unidad IS NULL) OR ((valor IS NOT NULL) AND (btrim((unidad)::text) <> ''::text))))"
+    },
+    "laboratorios_historial.laboratorios_historial_version_unica": {
+      "tipo": "u",
+      "valida": true,
+      "diferible": false,
+      "definicion": "UNIQUE (resultado_id, version)"
+    },
+    "resultados_laboratorio.resultados_laboratorio_estado_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_origen_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((laboratorio IS NULL) OR (btrim((laboratorio)::text) <> ''::text)))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_unidad_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((unidad IS NULL) OR ((valor IS NOT NULL) AND (btrim((unidad)::text) <> ''::text))))"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_categoria_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((categoria)::text = ANY ((ARRAY['personal'::character varying, 'quirurgico'::character varying, 'familiar'::character varying, 'otro'::character varying])::text[])))"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_paciente_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE RESTRICT"
+    },
+    "laboratorios_historial.laboratorios_historial_estudio_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((btrim((estudio)::text) <> ''::text))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_estudio_valido": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((btrim((estudio)::text) <> ''::text))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_fechas_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((actualizado_en >= creado_en))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_version_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((version > 0))"
+    },
+    "antecedentes_historial.antecedentes_historial_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "laboratorios_historial.laboratorios_historial_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_descripcion_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((btrim((descripcion)::text) <> ''::text))"
+    },
+    "antecedentes_historial.antecedentes_historial_categoria_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((categoria)::text = ANY ((ARRAY['personal'::character varying, 'quirurgico'::character varying, 'familiar'::character varying, 'otro'::character varying])::text[])))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_paciente_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE RESTRICT"
+    },
+    "laboratorios_historial.laboratorios_historial_resultado_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (resultado_id) REFERENCES resultados_laboratorio(id) ON DELETE RESTRICT"
+    },
+    "antecedentes_historial.antecedentes_historial_descripcion_valida": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((btrim((descripcion)::text) <> ''::text))"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_observaciones_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((observaciones IS NULL) OR (btrim((observaciones)::text) <> ''::text)))"
+    },
+    "antecedentes_historial.antecedentes_historial_antecedente_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (antecedente_id) REFERENCES antecedentes_clinicos(id) ON DELETE RESTRICT"
+    },
+    "antecedentes_historial.antecedentes_historial_observaciones_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((observaciones IS NULL) OR (btrim((observaciones)::text) <> ''::text)))"
+    },
+    "laboratorios_historial.laboratorios_historial_observaciones_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((observaciones IS NULL) OR (btrim((observaciones)::text) <> ''::text)))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_observaciones_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK (((observaciones IS NULL) OR (btrim((observaciones)::text) <> ''::text)))"
+    },
+    "laboratorios_historial.laboratorios_historial_fechas_estudio_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((fecha_muestra IS NULL) OR ((fecha_muestra >= '0001-01-01'::date) AND (fecha_muestra <= '9999-12-31'::date))) AND ((fecha_resultado IS NULL) OR ((fecha_resultado >= '0001-01-01'::date) AND (fecha_resultado <= '9999-12-31'::date))) AND ((fecha_muestra IS NULL) OR (fecha_resultado IS NULL) OR (fecha_muestra <= fecha_resultado))))"
+    },
+    "resultados_laboratorio.resultados_laboratorio_fechas_estudio_validas": {
+      "tipo": "c",
+      "valida": true,
+      "diferible": false,
+      "definicion": "CHECK ((((fecha_muestra IS NULL) OR ((fecha_muestra >= '0001-01-01'::date) AND (fecha_muestra <= '9999-12-31'::date))) AND ((fecha_resultado IS NULL) OR ((fecha_resultado >= '0001-01-01'::date) AND (fecha_resultado <= '9999-12-31'::date))) AND ((fecha_muestra IS NULL) OR (fecha_resultado IS NULL) OR (fecha_muestra <= fecha_resultado))))"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_creado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "resultados_laboratorio.resultados_laboratorio_creado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (creado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "antecedentes_clinicos.antecedentes_clinicos_actualizado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (actualizado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    },
+    "resultados_laboratorio.resultados_laboratorio_actualizado_por_usuario_id_fkey": {
+      "tipo": "f",
+      "valida": true,
+      "diferible": false,
+      "definicion": "FOREIGN KEY (actualizado_por_usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT"
+    }
+  }
+}
+$cu24_contrato$::jsonb OR to_regclass('public.perfiles_clinicos') IS NULL THEN
+            RAISE EXCEPTION 'Esquema incompatible: contrato 010 parcial o alterado';
+        END IF;
+    END IF;
+END;
+$cu24$;
 -- CU23: contrato completo de 009; se valida antes de proyectar el esquema administrativo.
 DO $cu23$
 DECLARE clinico jsonb;
@@ -498,16 +1268,16 @@ DECLARE
 BEGIN
     -- CU15_METADATA_INICIO: unico punto de lectura, sustituido solo por fixtures aislados en tests.
     SELECT jsonb_build_object(
-      'tablas', COALESCE((SELECT jsonb_agg(c.relname ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial')),'[]'::jsonb),
+      'tablas', COALESCE((SELECT jsonb_agg(c.relname ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial','antecedentes_clinicos','antecedentes_historial','resultados_laboratorio','laboratorios_historial')),'[]'::jsonb),
       'historial_tipo', (SELECT c.relkind::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='citas_historial'),
       'columnas', COALESCE((SELECT jsonb_object_agg(c.relname||'.'||a.attname,jsonb_build_object('tipo',format_type(a.atttypid,a.atttypmod),'obligatoria',a.attnotnull,'identidad',a.attidentity::text,'defecto',pg_get_expr(d.adbin,d.adrelid)))
         FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
-        WHERE n.nspname='public' AND c.relkind IN ('r','p') AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial') AND a.attnum>0 AND NOT a.attisdropped),'{}'::jsonb),
+        WHERE n.nspname='public' AND c.relkind IN ('r','p') AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial','antecedentes_clinicos','antecedentes_historial','resultados_laboratorio','laboratorios_historial') AND a.attnum>0 AND NOT a.attisdropped),'{}'::jsonb),
       'referencias', COALESCE((SELECT jsonb_agg(jsonb_build_object(
         'origen',c.relname||'.'||(SELECT string_agg(a.attname,',' ORDER BY k.orden) FROM unnest(f.conkey) WITH ORDINALITY k(numero,orden) JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k.numero),
         'destino',rn.nspname||'.'||rc.relname||'.'||(SELECT string_agg(a.attname,',' ORDER BY k.orden) FROM unnest(f.confkey) WITH ORDINALITY k(numero,orden) JOIN pg_attribute a ON a.attrelid=rc.oid AND a.attnum=k.numero),
         'borrado',f.confdeltype::text,'actualizacion',f.confupdtype::text,'valida',f.convalidated,'diferible',f.condeferrable))
-        FROM pg_constraint f JOIN pg_class c ON c.oid=f.conrelid JOIN pg_namespace n ON n.oid=f.connamespace JOIN pg_class rc ON rc.oid=f.confrelid JOIN pg_namespace rn ON rn.oid=rc.relnamespace WHERE n.nspname='public' AND f.contype='f' AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial')),'[]'::jsonb),
+        FROM pg_constraint f JOIN pg_class c ON c.oid=f.conrelid JOIN pg_namespace n ON n.oid=f.connamespace JOIN pg_class rc ON rc.oid=f.confrelid JOIN pg_namespace rn ON rn.oid=rc.relnamespace WHERE n.nspname='public' AND f.contype='f' AND c.relname NOT IN ('perfiles_clinicos','alergias_paciente','alergias_historial','antecedentes_clinicos','antecedentes_historial','resultados_laboratorio','laboratorios_historial')),'[]'::jsonb),
       'indices_historial', COALESCE((SELECT jsonb_object_agg(ic.relname,jsonb_build_object(
         'metodo',am.amname,'unico',i.indisunique,'valido',i.indisvalid,'listo',i.indisready,'definicion',pg_get_indexdef(i.indexrelid),
         'atributos',i.indnatts,'claves',i.indnkeyatts,'predicado',pg_get_expr(i.indpred,i.indrelid),

@@ -14,6 +14,17 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if(preg_match('#^/pacientes/([1-9][0-9]*)/(antecedentes|laboratorios)(?:/([1-9][0-9]*)(?:/(editar|actualizar|historial))?)?$#',$path,$cu24)===1){
+        $controlador=new \App\Controllers\RegistrosClinicosController();
+        $paciente=filter_var($cu24[1],FILTER_VALIDATE_INT);$registro=isset($cu24[3])?filter_var($cu24[3],FILTER_VALIDATE_INT):null;
+        $accion=$cu24[4]??'';
+        if($paciente===false||$registro===false){http_response_code(404);require dirname(__DIR__).'/app/Views/errors/404.php';}
+        else{
+            $permitidos=$accion==='actualizar'?['POST']:($registro!==null?['GET']:['GET','POST']);
+            if(!in_array($method,$permitidos,true)){http_response_code(405);header('Allow: '.implode(', ',$permitidos));require dirname(__DIR__).'/app/Views/errors/405.php';}
+            else{$method==='POST'?$controlador->guardar($paciente,$cu24[2],$registro):$controlador->mostrar($paciente,$cu24[2],$registro,$accion);}
+        }exit;
+    }
     if(preg_match('#^/pacientes/([1-9][0-9]*)/(perfil-clinico|alergias)(?:/([1-9][0-9]*)/(editar|actualizar|historial))?$#',$path,$clinico)===1){
         $controlador=new \App\Controllers\PerfilesClinicosController();
         $paciente=filter_var($clinico[1],FILTER_VALIDATE_INT);$alergia=isset($clinico[3])?filter_var($clinico[3],FILTER_VALIDATE_INT):null;

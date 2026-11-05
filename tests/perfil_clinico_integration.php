@@ -84,6 +84,6 @@ try{
     $u=$prueba->actores['medico']['id'];$pdo->prepare('UPDATE usuarios SET activo=false WHERE id=:id')->execute(['id'=>$u]);clinicoRechaza(fn()=>$s->consultar($p),403,'cuenta desactivada se revalida por operación');$pdo->prepare('UPDATE usuarios SET activo=true WHERE id=:id')->execute(['id'=>$u]);
     $pdo->prepare("UPDATE usuarios SET rol_id=(SELECT id FROM roles WHERE nombre='administrador') WHERE id=:id")->execute(['id'=>$u]);clinicoRechaza(fn()=>$s->consultar($p),403,'rol cambiado no conserva permiso clínico');$pdo->prepare("UPDATE usuarios SET rol_id=(SELECT id FROM roles WHERE nombre='medico') WHERE id=:id")->execute(['id'=>$u]);
     clinicoAssert((int)$pdo->query('SELECT count(*) FROM citas_historial WHERE cita_id='.(int)$prueba->citas['propia'])->fetchColumn()===0,'sin reutilizar historial administrativo');
-    $meta=cu15Conexion()->query("SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND contype='f'")->fetchColumn();clinicoAssert((int)$meta===20,'integración conserva las veinte referencias');
+    $meta=cu15Conexion()->query("SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND contype='f'")->fetchColumn();clinicoAssert((int)$meta===30,'integración conserva las treinta referencias después de 010');
 }finally{if($prueba){$prueba->limpiar();}}
 echo "Aprobadas: $total. Integración CU23, privacidad, roles, auditoría y rollback; fixtures retirados.\n";

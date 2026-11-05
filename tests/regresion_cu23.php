@@ -12,7 +12,7 @@ set_exception_handler(static function(Throwable $e):void{
         &&!preg_match('/postgres|password|contras|token|dsn|:\/\//i',$e->getMessage());
     fwrite(STDERR,'Fallo de prueba CU23: '.get_class($e).($safe?' / '.$e->getMessage():' / detalle nativo omitido').PHP_EOL);exit(1);
 });
-require $argv[1];
+$file=$argv[1];$argv=[$file];$argc=1;require $file;
 PHP;
 foreach($suites as $suite){
     $p=proc_open([PHP_BINARY,'-r',$wrapper,__DIR__.'/'.$suite.'.php'],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,dirname(__DIR__));

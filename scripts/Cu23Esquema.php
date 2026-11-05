@@ -15,8 +15,11 @@ function cu23Catalogo(PDO $pdo): array
 function cu23ValidarInstalacion(PDO $pdo): void
 {
     $tablas = $pdo->query("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")->fetchAll(PDO::FETCH_COLUMN);
-    $esperadas = [...CU23_ORIGINALES, ...CU23_TABLAS]; sort($esperadas);
-    if ($tablas !== $esperadas || (int)$pdo->query("SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND contype='f'")->fetchColumn() !== 20) {
+    $esperadas = [...CU23_ORIGINALES, ...CU23_TABLAS];
+    $cu24=(bool)$pdo->query("SELECT to_regclass('public.antecedentes_clinicos') IS NOT NULL")->fetchColumn();
+    if($cu24){require_once __DIR__.'/Cu24Esquema.php';cu24ValidarNuevo($pdo);$esperadas=[...$esperadas,...CU24_TABLAS];}
+    sort($esperadas);
+    if ($tablas !== $esperadas || (int)$pdo->query("SELECT count(*) FROM pg_constraint WHERE connamespace='public'::regnamespace AND contype='f'")->fetchColumn() !== ($cu24?30:20)) {
         throw new RuntimeException('Contrato de tablas o referencias incompatible.');
     }
     $catalogo = cu23Catalogo($pdo);

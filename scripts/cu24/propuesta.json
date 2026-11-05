@@ -1,0 +1,457 @@
+{
+  "sha256_sql": "91769e9985d88b21b8ce4093c4e315a42b172989b897ec44f2b2f8361a64f64a",
+  "tablas": {
+    "antecedentes_clinicos": {
+      "columnas": {
+        "id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "a",
+          "defecto": null
+        },
+        "paciente_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "categoria": {
+          "tipo": "character varying(20)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "descripcion": {
+          "tipo": "character varying(1000)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_evento": {
+          "tipo": "date",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_aproximada": {
+          "tipo": "boolean",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "observaciones": {
+          "tipo": "character varying(500)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "estado": {
+          "tipo": "character varying(10)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "'activo'::character varying"
+        },
+        "version": {
+          "tipo": "integer",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "1"
+        },
+        "creado_por_usuario_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "actualizado_por_usuario_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "creado_en": {
+          "tipo": "timestamp with time zone",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "clock_timestamp()"
+        },
+        "actualizado_en": {
+          "tipo": "timestamp with time zone",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "clock_timestamp()"
+        }
+      },
+      "fk": {
+        "paciente_id": "pacientes",
+        "creado_por_usuario_id": "usuarios",
+        "actualizado_por_usuario_id": "usuarios"
+      },
+      "checks": [
+        "antecedentes_clinicos_categoria_valida",
+        "antecedentes_clinicos_descripcion_valida",
+        "antecedentes_clinicos_fecha_valida",
+        "antecedentes_clinicos_observaciones_validas",
+        "antecedentes_clinicos_estado_valido",
+        "antecedentes_clinicos_version_valida",
+        "antecedentes_clinicos_fechas_validas"
+      ],
+      "unique": []
+    },
+    "antecedentes_historial": {
+      "columnas": {
+        "id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "a",
+          "defecto": null
+        },
+        "antecedente_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "version": {
+          "tipo": "integer",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "evento": {
+          "tipo": "character varying(20)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "categoria": {
+          "tipo": "character varying(20)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "descripcion": {
+          "tipo": "character varying(1000)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_evento": {
+          "tipo": "date",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_aproximada": {
+          "tipo": "boolean",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "observaciones": {
+          "tipo": "character varying(500)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "estado": {
+          "tipo": "character varying(10)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "motivo_cambio": {
+          "tipo": "character varying(250)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "usuario_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "cambiado_en": {
+          "tipo": "timestamp with time zone",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "clock_timestamp()"
+        }
+      },
+      "fk": {
+        "antecedente_id": "antecedentes_clinicos",
+        "usuario_id": "usuarios"
+      },
+      "checks": [
+        "antecedentes_historial_categoria_valida",
+        "antecedentes_historial_descripcion_valida",
+        "antecedentes_historial_fecha_valida",
+        "antecedentes_historial_observaciones_validas",
+        "antecedentes_historial_estado_valido",
+        "antecedentes_historial_evento_valido",
+        "antecedentes_historial_motivo_valido"
+      ],
+      "unique": [
+        [
+          "antecedentes_historial_version_unica",
+          "antecedente_id, version"
+        ]
+      ]
+    },
+    "resultados_laboratorio": {
+      "columnas": {
+        "id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "a",
+          "defecto": null
+        },
+        "paciente_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "estudio": {
+          "tipo": "character varying(120)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_muestra": {
+          "tipo": "date",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_resultado": {
+          "tipo": "date",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "resultado_texto": {
+          "tipo": "character varying(2000)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "valor": {
+          "tipo": "numeric(18,6)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "unidad": {
+          "tipo": "character varying(40)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "rango_referencia": {
+          "tipo": "character varying(250)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "laboratorio": {
+          "tipo": "character varying(160)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "observaciones": {
+          "tipo": "character varying(500)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "estado": {
+          "tipo": "character varying(10)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "'activo'::character varying"
+        },
+        "version": {
+          "tipo": "integer",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "1"
+        },
+        "creado_por_usuario_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "actualizado_por_usuario_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "creado_en": {
+          "tipo": "timestamp with time zone",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "clock_timestamp()"
+        },
+        "actualizado_en": {
+          "tipo": "timestamp with time zone",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "clock_timestamp()"
+        }
+      },
+      "fk": {
+        "paciente_id": "pacientes",
+        "creado_por_usuario_id": "usuarios",
+        "actualizado_por_usuario_id": "usuarios"
+      },
+      "checks": [
+        "resultados_laboratorio_estudio_valido",
+        "resultados_laboratorio_texto_valido",
+        "resultados_laboratorio_fechas_estudio_validas",
+        "resultados_laboratorio_valor_valido",
+        "resultados_laboratorio_unidad_valida",
+        "resultados_laboratorio_rango_valido",
+        "resultados_laboratorio_origen_valido",
+        "resultados_laboratorio_observaciones_validas",
+        "resultados_laboratorio_estado_valido",
+        "resultados_laboratorio_version_valida",
+        "resultados_laboratorio_fechas_validas"
+      ],
+      "unique": []
+    },
+    "laboratorios_historial": {
+      "columnas": {
+        "id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "a",
+          "defecto": null
+        },
+        "resultado_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "version": {
+          "tipo": "integer",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "evento": {
+          "tipo": "character varying(20)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "estudio": {
+          "tipo": "character varying(120)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_muestra": {
+          "tipo": "date",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "fecha_resultado": {
+          "tipo": "date",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "resultado_texto": {
+          "tipo": "character varying(2000)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "valor": {
+          "tipo": "numeric(18,6)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "unidad": {
+          "tipo": "character varying(40)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "rango_referencia": {
+          "tipo": "character varying(250)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "laboratorio": {
+          "tipo": "character varying(160)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "observaciones": {
+          "tipo": "character varying(500)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "estado": {
+          "tipo": "character varying(10)",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "motivo_cambio": {
+          "tipo": "character varying(250)",
+          "obligatoria": false,
+          "identidad": "",
+          "defecto": null
+        },
+        "usuario_id": {
+          "tipo": "bigint",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": null
+        },
+        "cambiado_en": {
+          "tipo": "timestamp with time zone",
+          "obligatoria": true,
+          "identidad": "",
+          "defecto": "clock_timestamp()"
+        }
+      },
+      "fk": {
+        "resultado_id": "resultados_laboratorio",
+        "usuario_id": "usuarios"
+      },
+      "checks": [
+        "laboratorios_historial_estudio_valido",
+        "laboratorios_historial_texto_valido",
+        "laboratorios_historial_fechas_estudio_validas",
+        "laboratorios_historial_valor_valido",
+        "laboratorios_historial_unidad_valida",
+        "laboratorios_historial_rango_valido",
+        "laboratorios_historial_origen_valido",
+        "laboratorios_historial_observaciones_validas",
+        "laboratorios_historial_estado_valido",
+        "laboratorios_historial_evento_valido",
+        "laboratorios_historial_motivo_valido"
+      ],
+      "unique": [
+        [
+          "laboratorios_historial_version_unica",
+          "resultado_id, version"
+        ]
+      ]
+    }
+  }
+}

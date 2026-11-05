@@ -1,15 +1,15 @@
 # Ciclo 2 — Clínica Vida Salud
 
-CU23 está implementado y probado localmente en `feat/ciclo2-cu23-perfil-clinico-alergias`,
-desde CU22 `58ab187`, sin commit/push. La migración 009 fue autorizada y aplicada
-una sola vez: doce tablas/veinte FK. No repetirla. Consulta [CU23](CU23.md)
-y [los resultados e inventario](PRUEBAS_CU23.md).
+CU24 está implementado localmente en `feat/ciclo2-cu24-antecedentes-laboratorio`,
+desde CU23 `f3d275c`, sin commit/push de CU24. La migración 010 fue autorizada y
+aplicada una sola vez: dieciséis tablas/treinta FK. No repetirla. Consulta
+[CU24](CU24.md) y [los resultados e inventario](PRUEBAS_CU24.md).
 
 Desarrollo local de **CU15 — Reprogramar**, **CU16 — Cancelar**, **CU17 — Confirmar**
 y **CU18 — Registrar llegada, atención e inasistencia**, con
 **CU19 — Agenda médica diaria y semanal**, con **CU20 — Historial de citas por
 paciente**, **CU21 — Reportes de citas médicas**, **CU22 — Exportación PDF/CSV**
-y **CU23 — Perfil clínico básico y alergias**
+**CU23 — Perfil clínico básico y alergias** y **CU24 — Antecedentes y laboratorio**
 en desarrollo local.
 
 - [Diseño y reglas CU15](CU15.md).
@@ -32,6 +32,8 @@ en desarrollo local.
 - [Pruebas e inventario CU22](PRUEBAS_CU22.md).
 - [Perfil clínico, permisos y esquema CU23](CU23.md).
 - [Pruebas e inventario CU23](PRUEBAS_CU23.md).
+- [Antecedentes, laboratorio y auditoría CU24](CU24.md).
+- [Pruebas e inventario CU24](PRUEBAS_CU24.md).
 
 CU15 publicado en `feat/ciclo2-cu15-reprogramar-citas`, commit `03136dd`.
 CU16 publicado en `feat/ciclo2-cu16-cancelar-citas`, commit `431a861`.
@@ -42,16 +44,17 @@ CU20 publicado en `feat/ciclo2-cu20-historial-paciente`, commit `866839e`.
 CU21 publicado en `feat/ciclo2-cu21-reportes-citas`, commit `3415743`.
 CU22 publicado en `feat/ciclo2-cu22-exportar-reportes`, commit `58ab187`.
 No se consultó ni modificó Render; `main` permanece intacta.
-CU23 está implementado y probado localmente, con 009 aplicada y pendiente de guardar en Git.
+CU23 publicado en `feat/ciclo2-cu23-perfil-clinico-alergias`, commit `f3d275c`.
+CU24 permanece local, con 010 aplicada y pendiente de guardar en Git.
 CU19–CU22 no requieren migración; 008 ya estaba aplicada localmente.
 El verificador admite estrictamente 001–004 (8/10), 001–005/006/007/008 (9/12)
-y 001–009 (12/20),
+001–009 (12/20) y 001–010 (16/30),
 con columnas, CHECK, GiST y función del trigger de la versión detectada, sin aceptar
 instalaciones parciales. Programada, confirmada, presente, atendida e inasistencia
 conservan el intervalo; solo cancelada lo libera. CU11 conserva la cobertura de
 los intervalos que aún no terminan. Llegada no equivale a atención finalizada.
-Los informes CU15–CU22 conservan sus inventarios y resultados históricos.
-Inventario y comprobaciones actuales: CU23.
+Los informes CU15–CU23 conservan sus inventarios y resultados históricos.
+Inventario y comprobaciones actuales: CU24.
 Agenda, historial, reportes y exportaciones son de consulta, sin modificación de citas. El rol
 Paciente continúa sin portal propio; la limitación y propuesta futura están documentadas.
 Los cinco archivos de diagnóstico previos permanecen separados y excluidos.
