@@ -1,11 +1,11 @@
 # Ciclo 2 — Clínica Vida Salud
 
-CU25 está implementado localmente en `feat/ciclo2-cu25-portal-paciente`, desde
-CU24 `13d204d`, sin commit/push de CU25. El portal utiliza la relación existente
-pacientes.usuario_id y un vínculo inicial por Administrador con verificación
-expresa de identidad. No hay migración 011: se conservan 16 tablas/30 FK.
-Consulta [CU25](CU25.md) y [pruebas e inventario](PRUEBAS_CU25.md), incluida la
-limitación de auditoría persistente del vínculo. No repetir migraciones.
+CU26 está implementado localmente en `feat/ciclo2-cu26-comandos-voz`, desde
+CU25 `8e3fd8f`, sin commit/push de CU26. Agrega navegación opcional mediante
+comandos cerrados de voz o texto y enlaces existentes, sin escribir datos.
+Consulta [CU26](CU26.md) y [pruebas e inventario](PRUEBAS_CU26.md) para distinguir
+las simulaciones de reconocimiento del micrófono real. No hay migraciones nuevas:
+se conservan 16 tablas/30 FK y las limitaciones previas de CU25.
 
 Desarrollo local de **CU15 — Reprogramar**, **CU16 — Cancelar**, **CU17 — Confirmar**
 y **CU18 — Registrar llegada, atención e inasistencia**, con
@@ -63,3 +63,6 @@ Los cinco archivos de diagnóstico previos permanecen separados y excluidos.
 
 - [Portal Paciente, identidad y límites CU25](CU25.md).
 - [Pruebas e inventario CU25](PRUEBAS_CU25.md).
+
+- [Comandos de voz, roles y privacidad CU26](CU26.md).
+- [Pruebas e inventario CU26](PRUEBAS_CU26.md).

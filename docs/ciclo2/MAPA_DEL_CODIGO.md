@@ -1,5 +1,23 @@
 # Mapa del código — Ciclo 2
 
+## CU26 — Comandos de voz para navegación autorizada
+
+| Archivo | Responsabilidad |
+|---|---|
+| `app/Services/CatalogoVoz.php` | Lista cerrada de comandos, roles y rutas existentes; sin datos de citas |
+| `app/Views/voz/panel.php`, `app/Views/layout.php` | Catálogo del actor real y vínculo activo, consentimiento temporal, alternativa manual y ayuda |
+| `public/assets/js/comandos-voz.mjs`, `public/assets/css/voz.css` | Resolución exacta, Web Speech opcional, sesión corta, abort/limpieza, errores y accesibilidad |
+| `tests/comandos_voz_validation.php`, `.mjs` | Catálogo, normalización y rechazo de destinos/textos fuera de alcance, sin conexión |
+| `tests/http_comandos_voz.php` | Destinos autorizados, vínculo, CSRF/logout y huellas sin escrituras |
+| `tests/comandos_voz_browser.php`, `.mjs` | Edge real, eventos de voz simulados, API real detectada sin activar micrófono, tres tamaños |
+| `tests/regresion_cu26.php`, `Cu26Ejecutar.php` | Ejecución sanitizada y regresión CU01–CU25 |
+| `docs/ciclo2/CU26.md`, `PRUEBAS_CU26.md` | Diseño, comandos, privacidad, pruebas y límites reales |
+
+No hay nuevos endpoints, migraciones, SQL clínico ni escrituras por voz.
+El audio puede procesarse fuera del equipo por el navegador: requiere aceptación
+informada y no se garantiza funcionamiento local. No confundir eventos simulados
+con una frase reconocida por un micrófono real.
+
 ## CU25 — Portal Paciente y vínculo inicial administrativo
 
 | Archivo | Responsabilidad |

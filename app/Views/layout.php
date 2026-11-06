@@ -41,6 +41,7 @@ $nombresRoles = [
     <meta name="description" content="Sistema de gestión de Clínica Vida Salud.">
     <title><?= e($titulo . ' | ' . $appName) ?></title>
     <link rel="stylesheet" href="/assets/css/app.css">
+    <?php if($actor): ?><link rel="stylesheet" href="/assets/css/voz.css"><script type="module" src="/assets/js/comandos-voz.mjs"></script><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'portal/')): ?><link rel="stylesheet" href="/assets/css/portal.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'clinico/')): ?><link rel="stylesheet" href="/assets/css/clinico.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'reportes/')): ?><link rel="stylesheet" href="/assets/css/reportes.css"><?php endif; ?>
@@ -85,6 +86,7 @@ $nombresRoles = [
     </header>
 
     <main class="app-main">
+        <?php if($actor): require __DIR__.'/voz/panel.php'; endif; ?>
         <?php if ($mensaje): ?>
             <div class="notice notice-<?= e((string) $mensaje['tipo']) ?>" role="status">
                 <?= e((string) $mensaje['mensaje']) ?>

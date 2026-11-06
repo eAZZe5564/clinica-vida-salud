@@ -196,3 +196,11 @@ existente mediante READ ONLY. Los fixtures son inventados y se retiran por ID,
 sin desactivar restricciones; se comparan huellas de las dieciséis tablas.
 Edge usa perfil temporal y credenciales ficticias por stdin, sin capturas.
 Resultados e inventario: [PRUEBAS_CU25.md](../docs/ciclo2/PRUEBAS_CU25.md).
+
+
+CU26: `php tests/regresion_cu26.php --solo-cu26` valida comandos puros, HTTP de
+rutas existentes y Edge en tres tamaños; sin argumentos incluye CU01–CU25.
+Los eventos de voz son simulados y la detección real de API no activa micrófono.
+No se afirma haber reconocido una frase hablada. La alternativa manual, rechazo
+de permisos, errores y limpieza se prueban sin enviar audio a proveedores.
+Guías, compatibilidad real e inventario: [PRUEBAS_CU26.md](../docs/ciclo2/PRUEBAS_CU26.md).
