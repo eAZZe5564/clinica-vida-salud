@@ -1,0 +1,251 @@
+name: Validar Docker del Ciclo 2 sin Render
+
+on:
+  push:
+    branches:
+      - chore/preparar-despliegue-ciclo2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-ciclo2-preparacion
+  cancel-in-progress: false
+
+jobs:
+  validar-docker:
+    if: github.repository == 'eAZZe5564/clinica-vida-salud' && github.event_name == 'push' && github.ref == 'refs/heads/chore/preparar-despliegue-ciclo2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    env:
+      CANDIDATO: 23b1175fe865021a102a890c0f5b267eabad5588
+      IMAGEN: clinica-ciclo2-ci:validacion
+      CONTENEDOR: clinica-ciclo2-ci-humo
+
+    steps:
+      - name: Checkout oficial del commit de preparacion
+        # actions/checkout v7.0.1; SHA verificado contra la etiqueta oficial.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: revision
+          fetch-depth: 0
+          persist-credentials: false
+          clean: false
+
+      - name: Exportar exclusivamente el candidato CU26
+        run: |
+          set -euo pipefail
+          test "$(git -C revision rev-parse HEAD)" = "$GITHUB_SHA"
+          git -C revision merge-base --is-ancestor "$CANDIDATO" HEAD
+          FUENTE="$RUNNER_TEMP/clinica-cu26-fuente"
+          mkdir "$FUENTE"
+          git -C revision archive "$CANDIDATO" | tar -x -C "$FUENTE"
+          printf 'FUENTE=%s\n' "$FUENTE" >> "$GITHUB_ENV"
+          printf 'Workflow: %s\nCandidato: %s\n' "$GITHUB_SHA" "$CANDIDATO"
+          test -f "$FUENTE/Dockerfile"
+          test -f "$FUENTE/composer.json"
+          test -f "$FUENTE/composer.lock"
+          test ! -e "$FUENTE/.env"
+          test ! -e "$FUENTE/vendor"
+          test ! -e "$FUENTE/app/Config/DatabaseDiagnostic.php"
+
+      - name: Construir realmente el Dockerfile del candidato
+        run: |
+          set -euo pipefail
+          docker version
+          docker build --pull --progress=plain --tag "$IMAGEN" "$FUENTE"
+          docker image inspect --format 'Imagen construida: {{.Id}}' "$IMAGEN"
+
+      - name: Verificar PHP dependencias y ausencia de archivos privados
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --entrypoint php "$IMAGEN" -v
+          docker run --rm --network none -i --entrypoint php "$IMAGEN" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4) {
+              throw new RuntimeException('Se requiere PHP 8.4.');
+          }
+          foreach (['dom','mbstring','iconv','PDO','pdo_pgsql','session','json','openssl'] as $modulo) {
+              if (!extension_loaded($modulo)) {
+                  throw new RuntimeException('Modulo ausente: '.$modulo);
+              }
+          }
+          if (!in_array('pgsql', PDO::getAvailableDrivers(), true)) {
+              throw new RuntimeException('Driver PDO PostgreSQL ausente.');
+          }
+          $raiz = '/var/www/clinica';
+          require $raiz.'/vendor/autoload.php';
+          $esperadas = [
+              'dompdf/dompdf'=>'v3.1.6',
+              'dompdf/php-font-lib'=>'1.0.2',
+              'dompdf/php-svg-lib'=>'1.0.2',
+              'masterminds/html5'=>'2.12.0',
+              'sabberworm/php-css-parser'=>'v9.5.0',
+          ];
+          $lock = json_decode(file_get_contents($raiz.'/composer.lock'), true, 512, JSON_THROW_ON_ERROR);
+          $bloqueadas = array_column($lock['packages'], 'version', 'name');
+          ksort($bloqueadas);
+          ksort($esperadas);
+          if ($bloqueadas !== $esperadas) {
+              throw new RuntimeException('El lock difiere de las cinco versiones revisadas.');
+          }
+          foreach ($esperadas as $paquete=>$version) {
+              if (Composer\InstalledVersions::getPrettyVersion($paquete) !== $version) {
+                  throw new RuntimeException('Version instalada distinta del lock: '.$paquete);
+              }
+              echo $paquete.' '.$version.PHP_EOL;
+          }
+          foreach (['.env','.git','database','tests','scripts','app/Config/DatabaseDiagnostic.php'] as $privado) {
+              if (file_exists($raiz.'/'.$privado)) {
+                  throw new RuntimeException('Archivo no permitido en la imagen.');
+              }
+          }
+          $archivos = new RecursiveIteratorIterator(
+              new RecursiveDirectoryIterator($raiz, FilesystemIterator::SKIP_DOTS)
+          );
+          foreach ($archivos as $archivo) {
+              $nombre = $archivo->getFilename();
+              if ($archivo->isFile() && ($nombre === '.env' || str_starts_with($nombre, '.env.')
+                  || preg_match('/\.(?:dump|backup|pgpass|pfx|p12|key)$/i', $nombre) === 1)) {
+                  throw new RuntimeException('Archivo privado detectado; ruta omitida.');
+              }
+          }
+          $inicio = file_get_contents('/usr/local/bin/clinica-start');
+          if (preg_match('/(?:^|\n)\s*(?:php|psql|pg_restore|composer)\b/', $inicio) === 1) {
+              throw new RuntimeException('El inicio contiene una operacion inesperada.');
+          }
+          echo "PHP 8.4, modulos, lock, vendor y exclusiones verificados.\n";
+          PHP
+
+      - name: Validar Composer y auditar el lock sin actualizar paquetes
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --entrypoint composer "$IMAGEN" --version
+          docker run --rm --network none --entrypoint composer "$IMAGEN" validate --strict
+          docker run --rm --network none --entrypoint composer "$IMAGEN" check-platform-reqs --no-dev
+          docker run --rm --network none --entrypoint composer "$IMAGEN" install \
+            --dry-run --no-dev --prefer-dist --no-interaction --no-progress \
+            --no-scripts --no-plugins --optimize-autoloader
+          docker run --rm --entrypoint composer "$IMAGEN" audit --locked --no-dev --no-interaction
+
+      - name: Comprobar Apache y su configuracion
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --entrypoint apache2 "$IMAGEN" -v
+          docker run --rm --network none --entrypoint apache2ctl -e PORT=10000 "$IMAGEN" -t
+
+      - name: Generar PDF y CSV reales como www-data sin PostgreSQL
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --user www-data \
+            -e APP_ENV=production -e APP_TIMEZONE=America/La_Paz \
+            -i --entrypoint php "$IMAGEN" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          require '/var/www/clinica/app/Config/bootstrap.php';
+          use App\Exports\ReporteCitaDocumento;
+          use App\Exports\ReporteCitaPdf;
+          use App\Exports\ReporteCitaCsv;
+          use App\Models\Cita;
+          $estados = array_fill_keys(array_keys(Cita::ESTADOS), 0);
+          $estados['atendida'] = 1;
+          $fila = ['total'=>1] + $estados;
+          $datos = [
+              'f'=>['desde'=>'2026-01-01','hasta'=>'2026-01-01',
+                  'medico_id'=>'','especialidad_id'=>'','estado'=>''],
+              'opciones'=>['medicos'=>[],'especialidades'=>[]],
+              'reporte'=>[
+                  'general'=>$fila,'estados'=>$estados,
+                  'medicos'=>[['etiqueta'=>'Médico ficticio ÁÉÍÓÚ Ñ'] + $fila],
+                  'especialidades'=>[['etiqueta'=>'Especialidad ficticia'] + $fila],
+                  'dias'=>[['etiqueta'=>'2026-01-01'] + $fila],
+              ],
+          ];
+          if (!is_writable('/var/lib/clinica/sessions') || !is_writable(sys_get_temp_dir())) {
+              throw new RuntimeException('Permisos de sesiones/temporales incorrectos.');
+          }
+          $doc = new ReporteCitaDocumento($datos);
+          $pdf = (new ReporteCitaPdf())->crear($doc);
+          if (!str_starts_with($pdf, '%PDF-') || !str_contains(substr($pdf, -1024), '%%EOF')) {
+              throw new RuntimeException('PDF binario incompleto.');
+          }
+          $flujo = (new ReporteCitaCsv())->crear($doc);
+          $csv = stream_get_contents($flujo);
+          fclose($flujo);
+          if (!is_string($csv) || !str_starts_with($csv, "\xEF\xBB\xBF")
+              || !mb_check_encoding($csv, 'UTF-8')
+              || !str_contains($csv, 'Médico ficticio ÁÉÍÓÚ Ñ')) {
+              throw new RuntimeException('CSV no valido.');
+          }
+          echo "PDF y CSV validos con datos ficticios; sin BD ni archivos publicados.\n";
+          PHP
+
+      - name: Arrancar el entrypoint real con red deshabilitada
+        run: |
+          set -euo pipefail
+          # Solo valores ficticios sin cuenta ni servidor PostgreSQL asociado.
+          # El entrypoint exige DB_* aunque Apache solo vaya a servir un CSS.
+          export DB_HOST=127.0.0.1 DB_PORT=1 DB_NAME=ci_sin_base DB_USER=ci_sin_cuenta
+          export DB_PASSWORD
+          DB_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(24))')"
+          echo "::add-mask::$DB_PASSWORD"
+          docker run --detach --network none --name "$CONTENEDOR" \
+            -e APP_ENV=production -e APP_TIMEZONE=America/La_Paz -e APP_DEBUG=false \
+            -e PORT=10000 -e DB_HOST -e DB_PORT -e DB_NAME -e DB_USER -e DB_PASSWORD \
+            -e PGSSLMODE=verify-full -e PGSSLROOTCERT=/etc/ssl/certs/ca-certificates.crt \
+            "$IMAGEN" > /dev/null
+          unset DB_PASSWORD
+          test "$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$CONTENEDOR")" = none
+
+      - name: HTTP real a un recurso existente sin abrir conexion PDO
+        run: |
+          set -euo pipefail
+          docker exec -i "$CONTENEDOR" php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $url = 'http://127.0.0.1:10000/assets/css/app.css';
+          $contexto = stream_context_create(['http'=>['timeout'=>2,'ignore_errors'=>true]]);
+          $esperado = file_get_contents('/var/www/clinica/public/assets/css/app.css');
+          $correcto = false;
+          for ($intento=0; $intento<30; ++$intento) {
+              $cuerpo = @file_get_contents($url, false, $contexto);
+              $cabeceras = $http_response_header ?? [];
+              $cabecerasTexto = implode("\n", $cabeceras);
+              if (preg_match('#^HTTP/\S+ 200\b#', $cabeceras[0] ?? '') === 1
+                  && stripos($cabecerasTexto, 'Content-Type: text/css') !== false
+                  && is_string($cuerpo) && $cuerpo !== '' && $cuerpo === $esperado) {
+                  $correcto = true;
+                  break;
+              }
+              sleep(1);
+          }
+          if (!$correcto) {
+              throw new RuntimeException('Apache no sirvio el CSS esperado por HTTP.');
+          }
+          if (trim(file_get_contents('/proc/1/comm')) !== 'apache2') {
+              throw new RuntimeException('El proceso principal no es Apache.');
+          }
+          echo "HTTP 200 text/css; contenido identico al candidato; PID1 Apache.\n";
+          echo "Login, PDO/TLS y descargas autenticadas NO probados sin PostgreSQL.\n";
+          PHP
+          test "$(docker inspect --format '{{.State.Running}}' "$CONTENEDOR")" = true
+          {
+            printf '## Validacion Docker sin Render\n\n'
+            printf -- '- Candidato: %s\n' "$CANDIDATO"
+            printf -- '- Build real, PHP/Composer/Apache y PDF/CSV CLI comprobados.\n'
+            printf -- '- EntryPoint real, PID1 Apache y HTTP 200 del CSS comprobados sin red externa.\n'
+            printf -- '- No PostgreSQL, migraciones, datos clinicos, registros externos ni despliegues.\n'
+            printf -- '- Pendientes: login, PDO/TLS, PDF/CSV HTTP y reconocimiento con microfono real.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Retirar solo el contenedor efimero de CI
+        if: always()
+        run: |
+          set -euo pipefail
+          if docker container inspect "$CONTENEDOR" > /dev/null 2>&1; then
+            docker container rm --force "$CONTENEDOR" > /dev/null
+          fi
