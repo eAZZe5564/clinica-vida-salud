@@ -147,7 +147,7 @@ final class CitaRepository
     }
     public function bloquearPaciente(int $id): ?array
     {
-        $q=$this->pdo->prepare('SELECT id,activo FROM pacientes WHERE id=:id FOR SHARE');$q->execute(['id'=>$id]);return $q->fetch()?:null;
+        $q=$this->pdo->prepare('SELECT id,activo,usuario_id FROM pacientes WHERE id=:id FOR SHARE');$q->execute(['id'=>$id]);return $q->fetch()?:null;
     }
     public function bloquearActor(int $id): ?array
     {

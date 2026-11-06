@@ -41,6 +41,7 @@ $nombresRoles = [
     <meta name="description" content="Sistema de gestión de Clínica Vida Salud.">
     <title><?= e($titulo . ' | ' . $appName) ?></title>
     <link rel="stylesheet" href="/assets/css/app.css">
+    <?php if(isset($vista)&&str_starts_with($vista,'portal/')): ?><link rel="stylesheet" href="/assets/css/portal.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'clinico/')): ?><link rel="stylesheet" href="/assets/css/clinico.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'reportes/')): ?><link rel="stylesheet" href="/assets/css/reportes.css"><?php endif; ?>
     <?php if(isset($vista)&&str_starts_with($vista,'historial/')): ?><link rel="stylesheet" href="/assets/css/historial.css"><?php endif; ?>
@@ -57,6 +58,7 @@ $nombresRoles = [
         <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation">Menú</button>
         <nav id="main-navigation" class="navigation app-navigation" aria-label="Navegación principal">
             <a href="/dashboard">Inicio</a>
+            <?php if ($actor && $actor['rol']==='paciente'): ?><a href="/mis-citas">Mis citas</a><?php endif; ?>
             <?php if ($actor && in_array($actor['rol'],['administrador','recepcionista','medico'],true)): ?><a href="/historial-citas">Historial por paciente</a><?php endif; ?>
             <?php if ($actor && in_array($actor['rol'],['administrador','recepcionista','medico'],true)): ?><a href="/citas"><?= $actor['rol']==='medico'?'Mis citas':'Citas médicas' ?></a><?php endif; ?>
             <?php if ($actor && in_array($actor['rol'],['administrador','recepcionista','medico'],true)): ?><a href="/agenda">Agenda médica</a><a href="/horarios">Horarios médicos</a><a href="/disponibilidad">Disponibilidad</a><?php endif; ?>

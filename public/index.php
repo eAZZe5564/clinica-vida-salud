@@ -14,6 +14,7 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 try {
+    if (\App\Config\RutasPortal::despachar($path,$method)) { exit; }
     if(preg_match('#^/pacientes/([1-9][0-9]*)/(antecedentes|laboratorios)(?:/([1-9][0-9]*)(?:/(editar|actualizar|historial))?)?$#',$path,$cu24)===1){
         $controlador=new \App\Controllers\RegistrosClinicosController();
         $paciente=filter_var($cu24[1],FILTER_VALIDATE_INT);$registro=isset($cu24[3])?filter_var($cu24[3],FILTER_VALIDATE_INT):null;

@@ -1,5 +1,26 @@
 # Mapa del código — Ciclo 2
 
+## CU25 — Portal Paciente y vínculo inicial administrativo
+
+| Archivo | Responsabilidad |
+|---|---|
+| `app/Config/RutasPortal.php`, `public/index.php` | Rutas exclusivas, método e ID; controladores antes del despacho |
+| `app/Controllers/PortalPacienteController.php`, `VinculacionesController.php` | Rol, sesión, CSRF, PRG y no caché |
+| `app/Repositories/PortalPacienteRepository.php` | Identidad derivada de usuario_id, lecturas bloqueadas sin datos clínicos |
+| `app/Services/PortalPacienteService.php` | Proyección personal, alcance propio, disponibilidad y delegación de escrituras |
+| `app/Services/VinculacionPacienteService.php` | Solo vínculo inicial activo por Administrador y confirmación de identidad; transacción, bloqueos y unicidad |
+| `app/Services/AccesoCitaPaciente.php`, `CitaService.php`, `ReprogramacionService.php`, `CancelacionService.php`, `app/Repositories/CitaRepository.php` | Extensión de autorización al titular revalidado bajo los bloqueos anteriores |
+| `app/Services/FiltrosCita.php`, `ConsultaCitaService.php` | Validación neutral compartida; CU14 conserva permisos anteriores |
+| `app/Views/portal/*`, `public/assets/css/portal.css`, menú/panel y detalle administrativo | Consulta, formularios, historial y vínculo; presentación escapada y adaptable |
+| `scripts/verificar-cu25-local.php` | Contrato completo 16/30, FK/UNIQUE de usuario_id, solo lectura local |
+| `tests/PortalPacientePrueba.php`, `portal_paciente_*.php`, `http_portal_paciente.php` | Fixtures, integración, privacidad, rollback, concurrencia y HTTP |
+| `tests/portal_paciente_browser.mjs`, `regresion_cu25.php`, `Cu25Ejecutar.php` | Edge en tres tamaños y campaña local sanitizada |
+| `docs/ciclo2/CU25.md`, `PRUEBAS_CU25.md` | Reglas, límites de auditoría, resultados e inventario |
+
+Sin migración 011. No se encontró bitácora administrativa apropiada para vínculos:
+el recibo de sesión no es auditoría persistente. Las citas conservan su historial
+atómico existente; CU23/CU24 no se abren al Paciente por estar vinculado.
+
 ## CU24 — Antecedentes clínicos y resultados de laboratorio
 
 | Archivo | Responsabilidad |

@@ -185,3 +185,14 @@ Reservas CU13 backend: requiere migración 004 previamente autorizada/aplicada. 
 Interfaz CU13: http_citas_formulario.php verifica HTML real, revisión sin escritura, PRG, recibo restringido, refresh sin duplicados, conflictos con datos conservados, permisos y manipulación. citas_browser.php ejecuta Edge headless real mediante Node y el protocolo DevTools, sin bibliotecas instaladas. Requiere Edge en su ruta Windows habitual y Node con WebSocket nativo (probado con Node 24). El perfil es temporal y separado; no usa el perfil del usuario. Credenciales ficticias viajan por stdin, no por argumentos ni logs. Capturas en tests/artifacts/citas, ignoradas por Git. Ambas suites eliminan únicamente sus fixtures al terminar; pueden avanzar secuencias.
 
 Consulta CU14: ConsultaCitasPrueba compone los fixtures anteriores, crea dos agendas y citas históricas/futuras ficticias. consulta_citas_integration.php ejecuta rollback; http_consulta_citas.php verifica filtros, paginación/retorno, todos los roles, IDOR, XSS, lectura sin escrituras y una reserva real por el formulario CU13 que aparece en CU14 y bloquea CU12. consulta_citas_browser.php usa el modo de consulta de citas_browser.mjs para Edge real de escritorio/móvil, filtros, retorno, privacidad y acceso por URL. Las dos últimas limpian únicamente sus IDs de prueba en finally. Capturas en tests/artifacts/consulta-citas, ignoradas. No requiere migración adicional. En http_citas_integration.php se actualizó la expectativa GET /citas de 405 a 200 conforme al nuevo contrato CU14, conservando la comprobación de que GET no escribe.
+
+
+CU25: `php tests/regresion_cu25.php --solo-cu25` ejecuta integración, concurrencia
+con procesos PDO independientes, HTTP real, privacidad/rollback y Edge en tres
+tamaños. Sin argumentos incluye la regresión CU01–CU24. El guard Cu15Local impide
+conectar fuera de clinica_vida_salud_dev loopback/PostgreSQL 17. No aplica
+migraciones. `php scripts/verificar-cu25-local.php` comprueba 16/30 y el vínculo
+existente mediante READ ONLY. Los fixtures son inventados y se retiran por ID,
+sin desactivar restricciones; se comparan huellas de las dieciséis tablas.
+Edge usa perfil temporal y credenciales ficticias por stdin, sin capturas.
+Resultados e inventario: [PRUEBAS_CU25.md](../docs/ciclo2/PRUEBAS_CU25.md).

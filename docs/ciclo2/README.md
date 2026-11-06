@@ -1,9 +1,11 @@
 # Ciclo 2 — Clínica Vida Salud
 
-CU24 está implementado localmente en `feat/ciclo2-cu24-antecedentes-laboratorio`,
-desde CU23 `f3d275c`, sin commit/push de CU24. La migración 010 fue autorizada y
-aplicada una sola vez: dieciséis tablas/treinta FK. No repetirla. Consulta
-[CU24](CU24.md) y [los resultados e inventario](PRUEBAS_CU24.md).
+CU25 está implementado localmente en `feat/ciclo2-cu25-portal-paciente`, desde
+CU24 `13d204d`, sin commit/push de CU25. El portal utiliza la relación existente
+pacientes.usuario_id y un vínculo inicial por Administrador con verificación
+expresa de identidad. No hay migración 011: se conservan 16 tablas/30 FK.
+Consulta [CU25](CU25.md) y [pruebas e inventario](PRUEBAS_CU25.md), incluida la
+limitación de auditoría persistente del vínculo. No repetir migraciones.
 
 Desarrollo local de **CU15 — Reprogramar**, **CU16 — Cancelar**, **CU17 — Confirmar**
 y **CU18 — Registrar llegada, atención e inasistencia**, con
@@ -58,3 +60,6 @@ Inventario y comprobaciones actuales: CU24.
 Agenda, historial, reportes y exportaciones son de consulta, sin modificación de citas. El rol
 Paciente continúa sin portal propio; la limitación y propuesta futura están documentadas.
 Los cinco archivos de diagnóstico previos permanecen separados y excluidos.
+
+- [Portal Paciente, identidad y límites CU25](CU25.md).
+- [Pruebas e inventario CU25](PRUEBAS_CU25.md).

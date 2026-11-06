@@ -50,6 +50,7 @@ final class CancelacionService
                 throw new CitaException(['transaccion'=>'La cancelación requiere READ COMMITTED de escritura.'],409);
             }
             $this->pdo->exec('SAVEPOINT cancelar_cita');$savepoint=true;
+            AccesoCitaPaciente::previo($this->pdo,$actorId,$id);
             $inicial=$this->obtener($id);
             // Mismo orden de CU11/CU13/CU15: médico antes de cita; no exigir catálogos activos.
             if(!$this->repo->bloquearMedico((int)$inicial['medico_id'])){throw new CitaException(['medico'=>'El médico no existe.'],409);}
@@ -61,10 +62,9 @@ final class CancelacionService
             if(!is_string($original)||strlen($original)>80||$original!==$cita['original']){
                 throw new CitaException(['cita'=>'La cita cambió desde que abriste la confirmación. Revisa el horario actual antes de cancelar.'],409);
             }
+            $paciente=$this->repo->bloquearPaciente((int)$cita['paciente_id']);
             $actor=$this->repo->bloquearActor($actorId);
-            if(!$actor||!$actor['activo']||!in_array($actor['rol'],['administrador','recepcionista'],true)){
-                throw new CitaException(['permisos'=>'No tienes autorización para cancelar citas.'],403);
-            }
+            AccesoCitaPaciente::autorizar($actor,$paciente);
             $this->repo->cancelarProgramada($id);
             $this->repo->registrarCancelacion($cita,$actorId,$motivo);
             $this->pdo->exec('RELEASE SAVEPOINT cancelar_cita');$savepoint=false;

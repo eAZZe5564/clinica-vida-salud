@@ -1,0 +1,10 @@
+<?php use App\Models\Cita;
+$confirmado=($_SESSION['portal_confirmacion']??null)===(int)$cita['id'];unset($_SESSION['portal_confirmacion']); ?>
+<section class="panel portal"><p class="eyebrow">Mi cita · Hora de La Paz</p><h1><?= e($cita['codigo']) ?></h1>
+<?php if($confirmado): ?><p class="notice notice-exito" role="status">La operación se confirmó correctamente.</p><?php endif; ?>
+<dl class="detail-grid"><div><dt>Inicio</dt><dd><?= e($cita['inicio_local']) ?></dd></div><div><dt>Finalización</dt><dd><?= e($cita['fin_local']) ?></dd></div><div><dt>Médico</dt><dd><?= e($cita['medico_nombres'].' '.$cita['medico_apellidos']) ?></dd></div><div><dt>Especialidad</dt><dd><?= e($cita['especialidad']??'Sin registrar') ?></dd></div><div><dt>Estado</dt><dd><?= e(Cita::ESTADOS[$cita['estado']]) ?></dd></div></dl>
+<div class="portal-actions"><?php if($cita['estado']==='programada'): ?><a class="button" href="/mis-citas/<?= (int)$cita['id'] ?>/reprogramar">Reprogramar</a><a class="button button-secondary" href="/mis-citas/<?= (int)$cita['id'] ?>/cancelar">Cancelar</a><?php endif; ?><a href="/mis-citas">Volver a mis citas</a></div></section>
+<section class="panel portal"><h2>Historial personal de la cita</h2><p>Eventos de horario y estado; horas de La Paz.</p>
+<?php if(!$eventos['filas']): ?><p>No hay cambios registrados.</p><?php endif; ?>
+<?php foreach($eventos['filas'] as $h): ?><article class="portal-card"><h3><?= e(ucfirst($h['tipo'])) ?></h3><p><?= e($h['cambiado_en']) ?></p><p><?= e(Cita::ESTADOS[$h['estado_anterior']]) ?> → <?= e(Cita::ESTADOS[$h['estado_nuevo']]) ?></p><p><?= e($h['inicio_anterior']) ?> → <?= e($h['inicio_nuevo']) ?></p></article><?php endforeach; ?>
+<nav class="pagination" aria-label="Páginas de eventos"><?php if($eventos['pagina']>1): ?><a href="?pagina=<?= (int)$eventos['pagina']-1 ?>">Anterior</a><?php endif; ?><span>Página <?= (int)$eventos['pagina'] ?> de <?= (int)$eventos['paginas'] ?></span><?php if($eventos['pagina']<$eventos['paginas']): ?><a href="?pagina=<?= (int)$eventos['pagina']+1 ?>">Siguiente</a><?php endif; ?></nav></section>

@@ -15,6 +15,8 @@ $nombresRoles = [
     <p class="lead">Has iniciado sesión como <?= e($usuario['correo']) ?>.</p>
 </section>
 
+<?php if ($usuario['rol']==='paciente'): ?><section class="panel dashboard-card patient-dashboard"><h2>Mis citas</h2><p>Consulta tus próximas citas y tu historial personal. Reserva, reprograma o cancela según el estado de cada cita.</p><a class="button" href="/mis-citas">Entrar a mis citas</a></section><?php endif; ?>
+
 <?php if (in_array($usuario['rol'], ['administrador','recepcionista','medico'], true)): ?>
     <?php if(in_array($usuario['rol'],['administrador','recepcionista'],true)): ?><section class="panel dashboard-card patient-dashboard"><h2>Reportes de citas médicas</h2><p>Indicadores y resúmenes administrativos por período.</p><a class="text-link" href="/reportes/citas">Consultar reportes</a></section><?php endif; ?>
     <section class="panel dashboard-card patient-dashboard"><h2>Historial de citas por paciente</h2><p>Consulta citas anteriores, futuras y sus eventos administrativos autorizados.</p><a class="text-link" href="/historial-citas">Buscar historial de citas</a></section>

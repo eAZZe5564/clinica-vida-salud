@@ -49,9 +49,7 @@ final class CitaService
             $paciente=$this->repo->bloquearPaciente($datos['paciente_id']);
             if(!$paciente||!$paciente['activo']){throw new CitaException(['paciente_id'=>'El paciente no existe o está inactivo.']);}
             $actor=$this->repo->bloquearActor($actorId);
-            if(!$actor||!$actor['activo']||!in_array($actor['rol'],['administrador','recepcionista'],true)){
-                throw new CitaException(['permisos'=>'No tienes autorización para programar citas.'],403);
-            }
+            AccesoCitaPaciente::autorizar($actor,$paciente);
             // No usar una consulta previa: CU12 se ejecuta aquí, con la misma conexión
             // y transacción, después del bloqueo que impide cambios de horario de CU11.
             $libres=$this->disponibilidad->consultar($datos['medico_id'],$datos['fecha'],$datos['especialidad_id']);$valido=false;

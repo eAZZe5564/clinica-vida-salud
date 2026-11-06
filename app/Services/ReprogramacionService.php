@@ -75,6 +75,7 @@ final class ReprogramacionService
                 throw new CitaException(['transaccion'=>'La reprogramación requiere READ COMMITTED de escritura.'],409);
             }
             $this->pdo->exec('SAVEPOINT reprogramar_cita');$savepoint=true;
+            AccesoCitaPaciente::previo($this->pdo,$actorId,$id);
             $inicial=$this->obtener($id);
             // CU11 bloquea médico antes que horarios. Nunca bloquear cita antes que médico.
             $medico=$this->repo->bloquearMedico((int)$inicial['medico_id']);
@@ -92,9 +93,7 @@ final class ReprogramacionService
             $paciente=$this->repo->bloquearPaciente((int)$cita['paciente_id']);
             if(!$paciente||!$paciente['activo']){throw new CitaException(['paciente'=>'El paciente no está activo.']);}
             $actor=$this->repo->bloquearActor($actorId);
-            if(!$actor||!$actor['activo']||!in_array($actor['rol'],['administrador','recepcionista'],true)){
-                throw new CitaException(['permisos'=>'No tienes autorización para reprogramar citas.'],403);
-            }
+            AccesoCitaPaciente::autorizar($actor,$paciente);
             $this->exigirTurno($cita,$inicio);
             $this->repo->actualizarHorario($id,$inicio->format('c'));
             $this->repo->registrarReprogramacion($cita,$inicio->format('c'),$actorId);
