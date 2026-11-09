@@ -1,0 +1,25 @@
+name: Docker real - puente de mantenimiento
+on:
+  push:
+    branches:
+      - chore/puente-mantenimiento-ciclo1
+permissions:
+  contents: read
+concurrency:
+  group: mantenimiento-puente
+  cancel-in-progress: false
+jobs:
+  docker:
+    if: github.repository == 'eAZZe5564/clinica-vida-salud'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout del SHA exacto
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Construir y probar puente con Apache real
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: python3 tests/docker/validar.py --bridge "$SOURCE_SHA"
