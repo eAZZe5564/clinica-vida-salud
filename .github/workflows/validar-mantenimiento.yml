@@ -1,0 +1,26 @@
+name: Docker real - puente y CU26 con mantenimiento
+on:
+  push:
+    branches:
+      - chore/ciclo2-mantenimiento-validado
+permissions:
+  contents: read
+concurrency:
+  group: mantenimiento-ciclo2
+  cancel-in-progress: false
+jobs:
+  docker:
+    if: github.repository == 'eAZZe5564/clinica-vida-salud'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout del SHA exacto y fuentes del puente
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Construir y probar ambas imagenes con Apache real
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          BRIDGE_SHA: 399a68de05bbe8404cb1e824d93f497be50f875e
+        run: python3 tests/docker/validar.py --bridge "$BRIDGE_SHA" --full "$SOURCE_SHA"

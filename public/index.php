@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/app/Config/mantenimiento-http.php';
 require dirname(__DIR__) . '/app/Config/bootstrap.php';
 require_once dirname(__DIR__) . '/app/Config/helpers.php';
 
