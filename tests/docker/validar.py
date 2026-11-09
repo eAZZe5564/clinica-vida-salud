@@ -26,8 +26,8 @@ def run(command, *, data=None, capture=False, env=None):
                             stderr=subprocess.PIPE if capture else None, env=env, check=False)
     if result.returncode:
         # No imprimir stderr de peticiones, variables ni cuerpos de respuestas.
-        if capture and result.stdout:
-            diagnostic = re.search(r"Uncaught (?:RuntimeException|Error): ([^\r\n]+)", result.stdout.decode(errors="replace"))
+        if capture and (result.stdout or result.stderr):
+            diagnostic = re.search(r"Uncaught (?:RuntimeException|Error): ([^\r\n]+)", (result.stdout + result.stderr).decode(errors="replace"))
             if diagnostic:
                 print("Diagnostico de la prueba PHP: " + diagnostic.group(1), flush=True)
         raise RuntimeError(f"Fallo tecnico: {command[0]} (exit {result.returncode})")
