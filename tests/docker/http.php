@@ -4,6 +4,7 @@ declare(strict_types=1);
 $n=0;
 function ok(bool $value,string $label): void { global $n; if(!$value){throw new RuntimeException($label);} ++$n; }
 function req(string $path,string $method='GET',array $headers=[],array $form=[]): array {
+    if(in_array($method,['POST','PUT','PATCH','DELETE'],true)&&$form===[]){$form=['ci_probe'=>'ficticio'];$headers[]='Content-Type: application/x-www-form-urlencoded';}
     $context=stream_context_create(['http'=>['method'=>$method,'header'=>implode("\r\n",$headers),'content'=>$form===[]?'':http_build_query($form),'ignore_errors'=>true,'follow_location'=>0,'timeout'=>5]]);
     $body=@file_get_contents('http://127.0.0.1:10000'.$path,false,$context);
     $raw=$http_response_header??[]; preg_match('/\s(\d{3})\s/',$raw[0]??'',$m); $h=[];
@@ -60,7 +61,8 @@ if($phase==='closed'){
         ok(req('/login','GET',['X-Clinica-Maintenance-Key: '.str_repeat('0',64)])['status']===503,'Clave falsa admitida');
     }
     ok(req('/dashboard','GET',$base)['status']===303,'Anonimo no exige login');
-    ok(req('/login','POST',$base)['status']===419,'CSRF anonimo omitido');
+    $denied=req('/login','POST',$base);
+    ok($denied['status']===419,'CSRF anonimo status='.$denied['status'].' pagina_csrf='.(str_contains($denied['body'],'Formulario vencido')?'si':'no'));
     foreach($roles as $role){
         $login=req('/login','GET',$base);ok($login['status']===200,'Login normal falla');
         $cookies=$login['headers']['set-cookie']??[];ok(str_contains(strtolower(implode(' ',$cookies)),'secure'),'Se perdio cookie Secure');
