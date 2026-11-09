@@ -8,15 +8,22 @@ este documento no presume que un build aún no ejecutado haya aprobado.
 ## Fuentes
 
 El puente parte de 1afbad7b4a68b01f9999f54c1c6d9fe8ce40bf37 y solo incorpora
-cuatro cambios de runtime: app/Config/Mantenimiento.php,
+cuatro cambios de mantenimiento: app/Config/Mantenimiento.php,
 app/Config/mantenimiento-http.php, public/index.php (una inclusión antes del
 bootstrap) y docker/apache/clinica.conf (auto_prepend_file). Conserva Dockerfile,
 scripts y migraciones 001–004 del Ciclo 1; sin Dompdf ni módulos del Ciclo 2.
 
+CI real demostró además que Apache transformaba http_response_code(419) en HTTP
+500, aunque la página de rechazo CSRF era correcta. Se corrige una única línea
+en app/Middleware/AuthMiddleware.php para enviar explícitamente HTTP/1.1 419
+Page Expired. Es el quinto cambio de runtime, sin alterar validación ni permisos.
+El contrato de fuentes comprueba esa sustitución exacta en ambas versiones.
+
 La versión completa parte de la rama de preparación en
 a9883b0ca6488e0ce2aa63db44ebefcc5d2e77ef, con CU26
 23b1175fe865021a102a890c0f5b267eabad5588 como ancestro. Añade los mismos cuatro
-cambios de runtime, las pruebas/documentación 20G y el harness de esta entrega.
+cambios de mantenimiento, la corrección HTTP 419, las pruebas/documentación 20G
+y el harness de esta entrega.
 Mantiene el Dockerfile y composer.lock originales de CU26, con Dompdf v3.1.6.
 
 ## Ejecución aislada

@@ -19,7 +19,7 @@ RESULTS = []
 BASE_BRIDGE = "1afbad7b4a68b01f9999f54c1c6d9fe8ce40bf37"
 BASE_FULL = "23b1175fe865021a102a890c0f5b267eabad5588"
 RUNTIME = {"app/Config/Mantenimiento.php", "app/Config/mantenimiento-http.php",
-           "docker/apache/clinica.conf", "public/index.php"}
+           "docker/apache/clinica.conf", "public/index.php", "app/Middleware/AuthMiddleware.php"}
 
 def run(command, *, data=None, capture=False, env=None):
     result = subprocess.run(command, input=data, stdout=subprocess.PIPE if capture else None,
@@ -46,7 +46,7 @@ def export(source, version, target):
     paths = git("diff", "--name-only", base, source, "--", "app", "public", "docker",
                 "Dockerfile", ".dockerignore", "composer.json", "composer.lock", "database", "scripts")
     if set(paths.splitlines()) != RUNTIME:
-        raise RuntimeError("El inventario de runtime no coincide con los cuatro cambios autorizados")
+        raise RuntimeError("El inventario no coincide con mantenimiento y la correccion HTTP 419")
     for file in ["Dockerfile", ".dockerignore", "docker/start.sh", "app/Config/Database.php"]:
         if git("rev-parse", source + ":" + file) != git("rev-parse", base + ":" + file):
             raise RuntimeError("Se modifico un componente protegido del candidato")
@@ -55,6 +55,10 @@ def export(source, version, target):
     expected = original.replace(needle, b"require_once dirname(__DIR__) . '/app/Config/mantenimiento-http.php';\n" + needle)
     if original.count(needle) != 1 or expected != run(["git", "-C", str(ROOT), "show", source + ":public/index.php"], capture=True):
         raise RuntimeError("Index contiene cambios fuera del guard")
+    csrf = run(["git", "-C", str(ROOT), "show", base + ":app/Middleware/AuthMiddleware.php"], capture=True)
+    expected_csrf = csrf.replace(b"http_response_code(419);", b"header('HTTP/1.1 419 Page Expired', true, 419);")
+    if csrf.count(b"http_response_code(419);") != 1 or expected_csrf != run(["git", "-C", str(ROOT), "show", source + ":app/Middleware/AuthMiddleware.php"], capture=True):
+        raise RuntimeError("El cambio CSRF excede la correccion de su linea HTTP")
     archive = run(["git", "-C", str(ROOT), "archive", source], capture=True)
     with tarfile.open(fileobj=io.BytesIO(archive)) as package:
         package.extractall(target, filter="data")

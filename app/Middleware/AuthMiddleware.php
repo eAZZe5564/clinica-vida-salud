@@ -79,7 +79,7 @@ final class AuthMiddleware
         // También se rechazan tokens enviados con tipos inesperados, como arrays.
         $token = $_POST['_csrf'] ?? null;
         if (!is_string($token) || !\validar_csrf($token)) {
-            http_response_code(419);
+            header('HTTP/1.1 419 Page Expired', true, 419);
             require dirname(__DIR__) . '/Views/errors/419.php';
             exit;
         }
